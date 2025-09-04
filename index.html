@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Player Prop Odds Fetcher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .loader, .mini-loader {
+            border-top-color: #3498db;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+            border-style: solid;
+            border-radius: 50%;
+        }
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="%236b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l4 4 4-4"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
+            padding-right: 2.5rem;
+        }
+        .editable-input {
+            width: 100%;
+            padding: 4px 6px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            background-color: #f9fafb;
+        }
+        .editable-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h1 class="text-3xl font-bold text-center text-gray-900 mb-2">NFL Player Prop Odds Builder</h1>
+            <p class="text-center text-gray-600 mb-6">Select a game, build and customize a list of player markets, then export to CSV.</p>
+            <div class="text-center">
+                <button id="fetchEventsButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    Fetch Upcoming Games
+                </button>
+            </div>
+        </div>
+
+        <div id="game-selection-area" class="hidden bg-white rounded-lg shadow-md p-6 space-y-4">
+             <label for="eventsDropdown" class="block text-sm font-medium text-gray-700">1. Select a Game:</label>
+             <select id="eventsDropdown" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border">
+                <!-- Options will be populated here -->
+             </select>
+             <div id="csv-builder-container" class="mt-4 pt-4 space-y-4 border-t">
+                 <!-- CSV builder UI will be loaded here -->
+             </div>
+        </div>
+        
+        <div id="loader" class="hidden justify-center items-center mt-8">
+            <div class="loader ease-linear border-8 border-t-8 border-gray-200 h-32 w-32"></div>
+        </div>
+        
+        <div id="error" class="hidden mt-8 text-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+            <strong class="font-bold">Error!</strong>
+            <span class="block sm:inline" id="errorMessage"></span>
+        </div>
+    </div>
+
+    <!-- CSV Preview Modal -->
+    <div id="csvPreviewModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 text-center">CSV Preview</h3>
+                <div class="mt-4 px-2 py-3">
+                    <pre id="csvPreviewContent" class="text-left text-xs sm:text-sm text-gray-700 bg-gray-100 p-4 rounded-md overflow-auto max-h-96"></pre>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="closeModalButton" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const apiKey = '7ca177e18aa6a5230dddc27a238e3f73';
+        const sport = 'americanfootball_nfl';
+        const regions = 'us,eu';
+        const oddsFormat = 'decimal';
+
+        const marketsMap = {
+            'player_anytime_td': 'Anytime Touchdown Scorer',
+            'player_defensive_interceptions': 'Defensive Interceptions',
+            'player_kicking_points': 'Kicking Points',
+            'player_pass_attempts': 'Passing Attempts',
+            'player_pass_completions': 'Passing Completions',
+            'player_pass_interceptions': 'Passing Interceptions',
+            'player_pass_longest_completion': 'Longest Completion',
+            'player_pass_tds': 'Passing Touchdowns',
+            'player_pass_yds': 'Passing Yards',
+            'player_receptions': 'Receptions',
+            'player_reception_yds': 'Receiving Yards',
+            'player_rush_attempts': 'Rushing Attempts',
+            'player_rush_tds': 'Rushing Touchdowns',
+            'player_rush_yds': 'Rushing Yards',
+            'player_sacks': 'Sacks'
+        };
+        const markets = Object.keys(marketsMap).join(',');
+
+        const fetchEventsButton = document.getElementById('fetchEventsButton');
+        const gameSelectionArea = document.getElementById('game-selection-area');
+        const eventsDropdown = document.getElementById('eventsDropdown');
+        const csvBuilderContainer = document.getElementById('csv-builder-container');
+        const loader = document.getElementById('loader');
+        const errorDiv = document.getElementById('error');
+        const errorMessage = document.getElementById('errorMessage');
+        const modal = document.getElementById('csvPreviewModal');
+        const closeModalButton = document.getElementById('closeModalButton');
+        
+        let fetchedEvents = [];
+        let allPlayersData = {};
+        let currentEventCommenceTime = null;
+        let selectedDataForExport = {}; // Key: playerName, Value: Array of market objects
+
+        fetchEventsButton.addEventListener('click', async () => {
+            gameSelectionArea.classList.add('hidden');
+            csvBuilderContainer.innerHTML = '';
+            errorDiv.classList.add('hidden');
+            loader.classList.remove('hidden');
+            loader.classList.add('flex');
+            fetchEventsButton.disabled = true;
+            fetchEventsButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                const eventsUrl = `https://api.the-odds-api.com/v4/sports/${sport}/events?apiKey=${apiKey}`;
+                const eventsResponse = await fetch(eventsUrl);
+                if (!eventsResponse.ok) {
+                    const errorData = await eventsResponse.json();
+                    throw new Error(`Failed to fetch events: ${errorData.message || eventsResponse.statusText}`);
+                }
+                fetchedEvents = await eventsResponse.json();
+
+                if (fetchedEvents.length === 0) {
+                     gameSelectionArea.classList.remove('hidden');
+                     eventsDropdown.innerHTML = '<option value="">No upcoming NFL events found.</option>';
+                } else {
+                    populateEventsDropdown(fetchedEvents);
+                    gameSelectionArea.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                console.error('An error occurred:', error);
+                errorMessage.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+            } finally {
+                loader.classList.add('hidden');
+                loader.classList.remove('flex');
+                fetchEventsButton.disabled = false;
+                fetchEventsButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
+        
+        closeModalButton.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        function populateEventsDropdown(events) {
+            eventsDropdown.innerHTML = '<option value="">-- Please select a match --</option>'; 
+            events.forEach(event => {
+                const option = document.createElement('option');
+                option.value = event.id;
+                option.dataset.homeTeam = event.home_team;
+                option.dataset.awayTeam = event.away_team;
+                const commenceTime = new Date(event.commence_time).toLocaleString();
+                option.textContent = `${event.home_team} vs ${event.away_team} (${commenceTime})`;
+                eventsDropdown.appendChild(option);
+            });
+        }
+        
+        eventsDropdown.addEventListener('change', async (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            const eventId = selectedOption.value;
+            const homeTeam = selectedOption.dataset.homeTeam;
+            const awayTeam = selectedOption.dataset.awayTeam;
+            const selectedEvent = fetchedEvents.find(event => event.id === eventId);
+            currentEventCommenceTime = selectedEvent ? selectedEvent.commence_time : null;
+
+            csvBuilderContainer.innerHTML = '';
+            allPlayersData = {};
+            selectedDataForExport = {};
+
+            if (!eventId) return;
+            
+            csvBuilderContainer.innerHTML = '<div class="flex justify-center"><div class="mini-loader border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>';
+
+            try {
+                const oddsUrl = `https://api.the-odds-api.com/v4/sports/${sport}/events/${eventId}/odds?apiKey=${apiKey}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
+                const res = await fetch(oddsUrl);
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || `HTTP error ${res.status}`);
+                }
+                const gameData = await res.json();
+                processGameData(gameData);
+                setupCsvBuilder(homeTeam, awayTeam);
+
+            } catch (error) {
+                csvBuilderContainer.innerHTML = `<p class="text-red-500 text-center">Could not fetch player odds: ${error.message}</p>`;
+            }
+        });
+
+        function processGameData(gameData) {
+            const pinnacle = gameData.bookmakers?.find(b => b.key === 'pinnacle');
+            const caesars = gameData.bookmakers?.find(b => b.title.toLowerCase().includes('caesars'));
+            const draftkings = gameData.bookmakers?.find(b => b.key === 'draftkings');
+            allPlayersData = {};
+            const addedPlayerMarkets = {}; 
+
+            const processBookmaker = (bookmaker) => {
+                if (!bookmaker) return;
+                bookmaker.markets.forEach(market => {
+                    const outcomesByPlayer = market.outcomes.reduce((acc, outcome) => {
+                        if (!acc[outcome.description]) {
+                            acc[outcome.description] = [];
+                        }
+                        acc[outcome.description].push(outcome);
+                        return acc;
+                    }, {});
+
+                    for (const playerName in outcomesByPlayer) {
+                        if (!addedPlayerMarkets[playerName]) {
+                            addedPlayerMarkets[playerName] = new Set();
+                        }
+                        if (addedPlayerMarkets[playerName].has(market.key)) {
+                            continue;
+                        }
+                        const outcomes = outcomesByPlayer[playerName];
+                        outcomes.forEach(outcome => {
+                            if (!allPlayersData[playerName]) {
+                                allPlayersData[playerName] = [];
+                            }
+                            allPlayersData[playerName].push({
+                                marketKey: market.key,
+                                marketName: marketsMap[market.key] || market.key,
+                                outcome: outcome,
+                                bookmaker: bookmaker.title
+                            });
+                        });
+                        addedPlayerMarkets[playerName].add(market.key);
+                    }
+                });
+            };
+            processBookmaker(pinnacle);
+            processBookmaker(caesars);
+            processBookmaker(draftkings);
+        }
+        
+        function setupCsvBuilder(homeTeam, awayTeam) {
+            csvBuilderContainer.innerHTML = '';
+             if (Object.keys(allPlayersData).length === 0) {
+                csvBuilderContainer.innerHTML = '<p class="text-center text-gray-500">No player prop markets found for this game.</p>';
+                return;
+            }
+
+            const allPlayerNames = Object.keys(allPlayersData).sort();
+
+            const builderHTML = `
+                <div>
+                    <label for="leagueTeamDropdown" class="block text-sm font-medium text-gray-700">2. Select Team for LEAGUE_NAME:</label>
+                    <select id="leagueTeamDropdown" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border">
+                        <option value="">-- Select Team --</option>
+                        <option value="${awayTeam}">${awayTeam}</option>
+                        <option value="${homeTeam}">${homeTeam}</option>
+                    </select>
+                </div>
+                <div>
+                     <label for="playerAddDropdown" class="block text-sm font-medium text-gray-700">3. Add Players to Export List:</label>
+                     <div class="mt-1 flex rounded-md shadow-sm">
+                        <select id="playerAddDropdown" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-l-md border">
+                            <option value="">-- Select a player to add --</option>
+                            ${allPlayerNames.map(name => `<option value="${name}">${name}</option>`).join('')}
+                        </select>
+                        <button id="addPlayerButton" class="px-4 py-2 border border-l-0 border-gray-300 bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-r-md">Add</button>
+                    </div>
+                </div>
+
+                <div id="export-list-container" class="mt-4 space-y-4">
+                     <!-- Selected players and their markets will appear here -->
+                </div>
+
+                 <div id="export-actions-container" class="hidden mt-6 text-center space-x-4">
+                    <button id="previewCsvButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">
+                        Preview CSV
+                    </button>
+                    <button id="exportCsvButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">
+                        Export to CSV
+                    </button>
+                </div>
+            `;
+            csvBuilderContainer.innerHTML = builderHTML;
+            
+            document.getElementById('addPlayerButton').addEventListener('click', handleAddPlayer);
+            document.getElementById('previewCsvButton').addEventListener('click', previewCsv);
+            document.getElementById('exportCsvButton').addEventListener('click', exportToCsv);
+            document.getElementById('export-list-container').addEventListener('click', handleRemoveMarket);
+            document.getElementById('export-list-container').addEventListener('input', handleDataChange);
+        }
+        
+        function handleAddPlayer() {
+            const playerDropdown = document.getElementById('playerAddDropdown');
+            const playerName = playerDropdown.value;
+
+            if (playerName && !selectedDataForExport[playerName]) {
+                selectedDataForExport[playerName] = JSON.parse(JSON.stringify(allPlayersData[playerName]));
+                renderSelectedPlayersAndMarkets();
+            }
+            playerDropdown.value = ''; // Reset dropdown
+        }
+        
+        function handleRemoveMarket(event) {
+            const removeButton = event.target.closest('.remove-market-btn');
+            if (!removeButton) return;
+            
+            const { player, marketKey } = removeButton.dataset;
+            
+            if (selectedDataForExport[player]) {
+                selectedDataForExport[player] = selectedDataForExport[player].filter(market => market.marketKey !== marketKey);
+                if (selectedDataForExport[player].length === 0) {
+                    delete selectedDataForExport[player];
+                }
+                renderSelectedPlayersAndMarkets();
+            }
+        }
+
+        function handleDataChange(event) {
+            const input = event.target;
+            if (!input.classList.contains('editable-input')) return;
+
+            const { player, marketKey, type } = input.dataset;
+            const newValue = input.value;
+
+            if (!selectedDataForExport[player]) return;
+
+            selectedDataForExport[player].forEach(market => {
+                if (market.marketKey === marketKey) {
+                    if (type === 'line') {
+                        market.outcome.point = parseFloat(newValue) || 0;
+                    } else if (type.toLowerCase() === market.outcome.name.toLowerCase()) {
+                        market.outcome.price = parseFloat(newValue) || 0;
+                    } else if (type === '1' && market.marketKey === 'player_anytime_td') {
+                         market.outcome.price = parseFloat(newValue) || 0;
+                    }
+                }
+            });
+        }
+
+        function renderSelectedPlayersAndMarkets() {
+            const listContainer = document.getElementById('export-list-container');
+            const actionsContainer = document.getElementById('export-actions-container');
+            listContainer.innerHTML = '';
+
+            if (Object.keys(selectedDataForExport).length === 0) {
+                actionsContainer.classList.add('hidden');
+                return;
+            }
+
+            for (const playerName in selectedDataForExport) {
+                const marketsForPlayer = selectedDataForExport[playerName];
+                // Group by marketKey to consolidate Over/Under into one row
+                const groupedMarkets = marketsForPlayer.reduce((acc, marketData) => {
+                    const key = marketData.marketKey;
+                    if (!acc[key]) {
+                        acc[key] = { 
+                            marketName: marketData.marketName, 
+                            outcomes: {} 
+                        };
+                    }
+                    acc[key].outcomes[marketData.outcome.name] = marketData.outcome;
+                    return acc;
+                }, {});
+
+                let tableHTML = `
+                    <div class="border rounded-lg p-4 bg-gray-50">
+                        <h4 class="text-md font-semibold text-gray-800 mb-3">${playerName}</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white text-sm">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-medium w-2/5">Market</th>
+                                        <th class="px-3 py-2 text-left font-medium">Line</th>
+                                        <th class="px-3 py-2 text-left font-medium">Under</th>
+                                        <th class="px-3 py-2 text-left font-medium">Over</th>
+                                        <th class="px-3 py-2 text-left font-medium">1</th>
+                                        <th class="px-3 py-2 text-right font-medium">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                for (const marketKey in groupedMarkets) {
+                    const market = groupedMarkets[marketKey];
+                    const underOutcome = market.outcomes['Under'];
+                    const overOutcome = market.outcomes['Over'];
+                    const yesOutcome = market.outcomes['Yes'];
+
+                    tableHTML += `
+                        <tr>
+                            <td class="px-3 py-2 border-t">${market.marketName}</td>
+                            <td class="px-3 py-2 border-t">
+                                <input type="text" class="editable-input" value="${underOutcome?.point || overOutcome?.point || ''}" 
+                                       data-player="${playerName}" data-market-key="${marketKey}" data-type="line">
+                            </td>
+                            <td class="px-3 py-2 border-t">
+                                <input type="text" class="editable-input" value="${underOutcome?.price || ''}" 
+                                       data-player="${playerName}" data-market-key="${marketKey}" data-type="under">
+                            </td>
+                            <td class="px-3 py-2 border-t">
+                                <input type="text" class="editable-input" value="${overOutcome?.price || ''}" 
+                                       data-player="${playerName}" data-market-key="${marketKey}" data-type="over">
+                            </td>
+                            <td class="px-3 py-2 border-t">
+                                <input type="text" class="editable-input" value="${yesOutcome?.price || ''}" 
+                                       data-player="${playerName}" data-market-key="${marketKey}" data-type="1">
+                            </td>
+                            <td class="px-3 py-2 border-t text-right">
+                                <button class="text-red-500 hover:text-red-700 remove-market-btn" 
+                                        data-player="${playerName}" data-market-key="${marketKey}">
+                                    Remove
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                tableHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                listContainer.innerHTML += tableHTML;
+            }
+            actionsContainer.classList.remove('hidden');
+        }
+
+        function generateCsvData() {
+            const leagueTeam = document.getElementById('leagueTeamDropdown').value;
+            if (!leagueTeam) {
+                alert('Please select a team for the LEAGUE_NAME.');
+                return null;
+            }
+             if (Object.keys(selectedDataForExport).length === 0) {
+                alert('The export list is empty. Please add some players and markets.');
+                return null;
+            }
+
+            const kickoffDate = new Date(currentEventCommenceTime);
+            const day = String(kickoffDate.getDate()).padStart(2, '0');
+            const month = String(kickoffDate.getMonth() + 1).padStart(2, '0');
+            const year = kickoffDate.getFullYear();
+            const dateStr = `${day}.${month}.${year}`;
+            const timeStr = kickoffDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+            let csvRows = [];
+            const headers = ['Datum', 'Vreme', 'Sifra', 'Domacin', 'Gost', '1', 'X', '2,GR', 'U', 'O', 'Yes', 'No'];
+            csvRows.push(headers);
+            csvRows.push(['MATCH_NAME:NFL Player Props']);
+            csvRows.push([`LEAGUE_NAME:${leagueTeam} NFL Specijal`]);
+
+            const formatMarketNameForCsv = (marketKey, marketName) => {
+                if (marketKey === 'player_anytime_td') return 'Touchdown Scorers';
+                if (marketKey === 'player_pass_interceptions') return 'Total Passing Interceptions';
+                if (marketKey === 'player_defensive_interceptions') return 'Total Interceptions';
+                if (!marketName.toLowerCase().startsWith('total ') && !marketName.toLowerCase().includes('touchdown')) {
+                    return `Total ${marketName}`;
+                }
+                return marketName;
+            };
+            
+            for (const playerName in selectedDataForExport) {
+                const marketsForPlayer = selectedDataForExport[playerName];
+                const groupedMarkets = marketsForPlayer.reduce((acc, marketData) => {
+                    const key = marketData.marketKey;
+                    if (!acc[key]) {
+                        acc[key] = { marketName: marketData.marketName, outcomes: {} };
+                    }
+                    acc[key].outcomes[marketData.outcome.name] = marketData.outcome;
+                    return acc;
+                }, {});
+
+                for (const marketKey in groupedMarkets) {
+                    const market = groupedMarkets[marketKey];
+                    const row = Array(12).fill('');
+                    row[0] = dateStr;
+                    row[1] = timeStr;
+                    row[3] = playerName;
+                    row[4] = formatMarketNameForCsv(marketKey, market.marketName);
+                    
+                    const under = market.outcomes['Under'];
+                    const over = market.outcomes['Over'];
+                    const yes = market.outcomes['Yes'];
+
+                    if (under || over) {
+                        row[7] = under?.point || over?.point || ''; // GR
+                        row[8] = under?.price || ''; // U
+                        row[9] = over?.price || ''; // O
+                    } else if (yes) {
+                        row[5] = yes.price || ''; // '1' column
+                    }
+                    csvRows.push(row);
+                }
+            };
+
+            return csvRows;
+        }
+
+        function previewCsv() {
+            const csvRows = generateCsvData();
+            if (!csvRows) return;
+            
+            const csvContentString = csvRows.map(e => e.join(",")).join("\n");
+            document.getElementById('csvPreviewContent').textContent = csvContentString;
+            modal.classList.remove('hidden');
+        }
+
+        function exportToCsv() {
+            const csvRows = generateCsvData();
+            if (!csvRows) return;
+
+            let csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\r\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            const leagueTeam = document.getElementById('leagueTeamDropdown').value;
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${leagueTeam}_player_props.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+    </script>
+</body>
+</html>
+
+
+
