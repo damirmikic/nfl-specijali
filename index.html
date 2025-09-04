@@ -47,6 +47,10 @@
             border-color: #4f46e5;
             box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3);
         }
+        .tab-button.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -67,8 +71,22 @@
              <select id="eventsDropdown" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border">
                 <!-- Options will be populated here -->
              </select>
-             <div id="csv-builder-container" class="mt-4 pt-4 space-y-4 border-t">
-                 <!-- CSV builder UI will be loaded here -->
+             
+             <div id="tabs-container" class="hidden mt-4 pt-4 border-t">
+                <div class="border-b border-gray-200">
+                    <nav id="tabs" class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="builder">CSV Builder</button>
+                        <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="all-odds">All Odds</button>
+                    </nav>
+                </div>
+                <div id="tab-content" class="mt-4">
+                    <div id="builder-tab-content" class="space-y-4">
+                        <!-- CSV builder UI will be loaded here -->
+                    </div>
+                    <div id="all-odds-tab-content" class="hidden space-y-6">
+                        <!-- All odds comparison UI will be loaded here -->
+                    </div>
+                </div>
              </div>
         </div>
         
@@ -128,7 +146,10 @@
         const fetchEventsButton = document.getElementById('fetchEventsButton');
         const gameSelectionArea = document.getElementById('game-selection-area');
         const eventsDropdown = document.getElementById('eventsDropdown');
-        const csvBuilderContainer = document.getElementById('csv-builder-container');
+        const tabsContainer = document.getElementById('tabs-container');
+        const tabs = document.getElementById('tabs');
+        const builderTabContent = document.getElementById('builder-tab-content');
+        const allOddsTabContent = document.getElementById('all-odds-tab-content');
         const loader = document.getElementById('loader');
         const errorDiv = document.getElementById('error');
         const errorMessage = document.getElementById('errorMessage');
@@ -137,12 +158,13 @@
         
         let fetchedEvents = [];
         let allPlayersData = {};
+        let currentFullGameData = null;
         let currentEventCommenceTime = null;
-        let selectedDataForExport = {}; // Key: playerName, Value: Array of market objects
+        let selectedDataForExport = {}; 
 
         fetchEventsButton.addEventListener('click', async () => {
             gameSelectionArea.classList.add('hidden');
-            csvBuilderContainer.innerHTML = '';
+            tabsContainer.classList.add('hidden');
             errorDiv.classList.add('hidden');
             loader.classList.remove('hidden');
             loader.classList.add('flex');
@@ -182,6 +204,22 @@
             modal.classList.add('hidden');
         });
 
+        tabs.addEventListener('click', (e) => {
+            const button = e.target.closest('.tab-button');
+            if (!button) return;
+
+            tabs.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            });
+
+            button.classList.add('active');
+            button.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+
+            builderTabContent.classList.toggle('hidden', button.dataset.tab !== 'builder');
+            allOddsTabContent.classList.toggle('hidden', button.dataset.tab !== 'all-odds');
+        });
+
         function populateEventsDropdown(events) {
             eventsDropdown.innerHTML = '<option value="">-- Please select a match --</option>'; 
             events.forEach(event => {
@@ -203,13 +241,19 @@
             const selectedEvent = fetchedEvents.find(event => event.id === eventId);
             currentEventCommenceTime = selectedEvent ? selectedEvent.commence_time : null;
 
-            csvBuilderContainer.innerHTML = '';
+            builderTabContent.innerHTML = '';
+            allOddsTabContent.innerHTML = '';
+            tabsContainer.classList.add('hidden');
             allPlayersData = {};
             selectedDataForExport = {};
+            currentFullGameData = null;
 
             if (!eventId) return;
             
-            csvBuilderContainer.innerHTML = '<div class="flex justify-center"><div class="mini-loader border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>';
+            tabsContainer.classList.remove('hidden');
+            builderTabContent.innerHTML = '<div class="flex justify-center"><div class="mini-loader border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>';
+            allOddsTabContent.innerHTML = '<div class="flex justify-center"><div class="mini-loader border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>';
+
 
             try {
                 const oddsUrl = `https://api.the-odds-api.com/v4/sports/${sport}/events/${eventId}/odds?apiKey=${apiKey}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
@@ -219,70 +263,100 @@
                     const errorData = await res.json();
                     throw new Error(errorData.message || `HTTP error ${res.status}`);
                 }
-                const gameData = await res.json();
-                processGameData(gameData);
+                currentFullGameData = await res.json();
+                
+                // Process data for CSV builder
+                processGameDataForBuilder(currentFullGameData);
+                // Setup UI for both tabs
                 setupCsvBuilder(homeTeam, awayTeam);
+                renderAllOddsView();
 
             } catch (error) {
-                csvBuilderContainer.innerHTML = `<p class="text-red-500 text-center">Could not fetch player odds: ${error.message}</p>`;
+                builderTabContent.innerHTML = `<p class="text-red-500 text-center">Could not fetch player odds: ${error.message}</p>`;
+                allOddsTabContent.innerHTML = `<p class="text-red-500 text-center">Could not fetch player odds: ${error.message}</p>`;
+
             }
         });
 
-        function processGameData(gameData) {
-            const pinnacle = gameData.bookmakers?.find(b => b.key === 'pinnacle');
-            const caesars = gameData.bookmakers?.find(b => b.title.toLowerCase().includes('caesars'));
-            const draftkings = gameData.bookmakers?.find(b => b.key === 'draftkings');
+        function processGameDataForBuilder(gameData) {
+            const bookmakers = gameData.bookmakers || [];
+            // Find all potential bookmakers
+            const pinnacle = bookmakers.find(b => b.key === 'pinnacle');
+            const caesars = bookmakers.find(b => b.title.toLowerCase().includes('caesars'));
+            const draftkings = bookmakers.find(b => b.key === 'draftkings');
+            const betmgm = bookmakers.find(b => b.key === 'betmgm');
+            const bovada = bookmakers.find(b => b.key === 'bovada');
+            const fanatics = bookmakers.find(b => b.key === 'fanatics');
+            const betonline = bookmakers.find(b => b.key === 'betonlineag');
+            const fanduel = bookmakers.find(b => b.key === 'fanduel');
+
+            // Define priority lists, filtering out any that weren't found in the API response
+            const kickingPointsPriority = [betmgm, bovada, fanatics, draftkings, pinnacle].filter(Boolean);
+            const sacksPriority = [betonline, fanduel, draftkings, pinnacle, caesars, betmgm].filter(Boolean);
+            const defaultPriority = [pinnacle, caesars, draftkings].filter(Boolean);
+            
             allPlayersData = {};
-            const addedPlayerMarkets = {}; 
+            
+            // Get a master list of all players from all bookmakers
+            const allPlayerNames = new Set();
+            bookmakers.forEach(bookie => {
+                bookie.markets.forEach(market => {
+                    market.outcomes.forEach(outcome => allPlayerNames.add(outcome.description));
+                });
+            });
 
-            const processBookmaker = (bookmaker) => {
-                if (!bookmaker) return;
-                bookmaker.markets.forEach(market => {
-                    const outcomesByPlayer = market.outcomes.reduce((acc, outcome) => {
-                        if (!acc[outcome.description]) {
-                            acc[outcome.description] = [];
-                        }
-                        acc[outcome.description].push(outcome);
-                        return acc;
-                    }, {});
 
-                    for (const playerName in outcomesByPlayer) {
-                        if (!addedPlayerMarkets[playerName]) {
-                            addedPlayerMarkets[playerName] = new Set();
-                        }
-                        if (addedPlayerMarkets[playerName].has(market.key)) {
-                            continue;
-                        }
-                        const outcomes = outcomesByPlayer[playerName];
-                        outcomes.forEach(outcome => {
-                            if (!allPlayersData[playerName]) {
-                                allPlayersData[playerName] = [];
+            allPlayerNames.forEach(playerName => {
+                const addedMarkets = new Set();
+                
+                // Function to process a list of bookmakers for a specific market
+                const findAndAddMarket = (marketKey, priorityList) => {
+                    if (addedMarkets.has(marketKey)) return;
+
+                    for (const bookmaker of priorityList) {
+                        const market = bookmaker.markets.find(m => m.key === marketKey);
+                        if (market) {
+                            const outcomes = market.outcomes.filter(o => o.description === playerName);
+                            if (outcomes.length > 0) {
+                                if (!allPlayersData[playerName]) allPlayersData[playerName] = [];
+                                
+                                outcomes.forEach(outcome => {
+                                    allPlayersData[playerName].push({
+                                        marketKey: market.key,
+                                        marketName: marketsMap[market.key] || market.key,
+                                        outcome: outcome,
+                                        bookmaker: bookmaker.title
+                                    });
+                                });
+                                addedMarkets.add(marketKey);
+                                return; // Found the market from the highest priority bookie, stop searching for this market
                             }
-                            allPlayersData[playerName].push({
-                                marketKey: market.key,
-                                marketName: marketsMap[market.key] || market.key,
-                                outcome: outcome,
-                                bookmaker: bookmaker.title
-                            });
-                        });
-                        addedPlayerMarkets[playerName].add(market.key);
+                        }
+                    }
+                };
+
+                // Iterate over all possible markets and apply the correct priority
+                Object.keys(marketsMap).forEach(marketKey => {
+                    if (marketKey === 'player_kicking_points') {
+                        findAndAddMarket(marketKey, kickingPointsPriority);
+                    } else if (marketKey === 'player_sacks') {
+                        findAndAddMarket(marketKey, sacksPriority);
+                    } else {
+                        findAndAddMarket(marketKey, defaultPriority);
                     }
                 });
-            };
-            processBookmaker(pinnacle);
-            processBookmaker(caesars);
-            processBookmaker(draftkings);
+            });
         }
         
+        // --- CSV Builder Functions ---
         function setupCsvBuilder(homeTeam, awayTeam) {
-            csvBuilderContainer.innerHTML = '';
+             builderTabContent.innerHTML = '';
              if (Object.keys(allPlayersData).length === 0) {
-                csvBuilderContainer.innerHTML = '<p class="text-center text-gray-500">No player prop markets found for this game.</p>';
+                builderTabContent.innerHTML = '<p class="text-center text-gray-500">No player prop markets found for this game.</p>';
                 return;
             }
 
             const allPlayerNames = Object.keys(allPlayersData).sort();
-
             const builderHTML = `
                 <div>
                     <label for="leagueTeamDropdown" class="block text-sm font-medium text-gray-700">2. Select Team for LEAGUE_NAME:</label>
@@ -302,21 +376,13 @@
                         <button id="addPlayerButton" class="px-4 py-2 border border-l-0 border-gray-300 bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-r-md">Add</button>
                     </div>
                 </div>
-
-                <div id="export-list-container" class="mt-4 space-y-4">
-                     <!-- Selected players and their markets will appear here -->
-                </div>
-
+                <div id="export-list-container" class="mt-4 space-y-4"></div>
                  <div id="export-actions-container" class="hidden mt-6 text-center space-x-4">
-                    <button id="previewCsvButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">
-                        Preview CSV
-                    </button>
-                    <button id="exportCsvButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">
-                        Export to CSV
-                    </button>
+                    <button id="previewCsvButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Preview CSV</button>
+                    <button id="exportCsvButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Export to CSV</button>
                 </div>
             `;
-            csvBuilderContainer.innerHTML = builderHTML;
+            builderTabContent.innerHTML = builderHTML;
             
             document.getElementById('addPlayerButton').addEventListener('click', handleAddPlayer);
             document.getElementById('previewCsvButton').addEventListener('click', previewCsv);
@@ -328,20 +394,17 @@
         function handleAddPlayer() {
             const playerDropdown = document.getElementById('playerAddDropdown');
             const playerName = playerDropdown.value;
-
             if (playerName && !selectedDataForExport[playerName]) {
                 selectedDataForExport[playerName] = JSON.parse(JSON.stringify(allPlayersData[playerName]));
                 renderSelectedPlayersAndMarkets();
             }
-            playerDropdown.value = ''; // Reset dropdown
+            playerDropdown.value = '';
         }
         
         function handleRemoveMarket(event) {
             const removeButton = event.target.closest('.remove-market-btn');
             if (!removeButton) return;
-            
             const { player, marketKey } = removeButton.dataset;
-            
             if (selectedDataForExport[player]) {
                 selectedDataForExport[player] = selectedDataForExport[player].filter(market => market.marketKey !== marketKey);
                 if (selectedDataForExport[player].length === 0) {
@@ -354,12 +417,9 @@
         function handleDataChange(event) {
             const input = event.target;
             if (!input.classList.contains('editable-input')) return;
-
             const { player, marketKey, type } = input.dataset;
             const newValue = input.value;
-
             if (!selectedDataForExport[player]) return;
-
             selectedDataForExport[player].forEach(market => {
                 if (market.marketKey === marketKey) {
                     if (type === 'line') {
@@ -377,27 +437,18 @@
             const listContainer = document.getElementById('export-list-container');
             const actionsContainer = document.getElementById('export-actions-container');
             listContainer.innerHTML = '';
-
             if (Object.keys(selectedDataForExport).length === 0) {
                 actionsContainer.classList.add('hidden');
                 return;
             }
-
             for (const playerName in selectedDataForExport) {
                 const marketsForPlayer = selectedDataForExport[playerName];
-                // Group by marketKey to consolidate Over/Under into one row
                 const groupedMarkets = marketsForPlayer.reduce((acc, marketData) => {
                     const key = marketData.marketKey;
-                    if (!acc[key]) {
-                        acc[key] = { 
-                            marketName: marketData.marketName, 
-                            outcomes: {} 
-                        };
-                    }
+                    if (!acc[key]) acc[key] = { marketName: marketData.marketName, outcomes: {} };
                     acc[key].outcomes[marketData.outcome.name] = marketData.outcome;
                     return acc;
                 }, {});
-
                 let tableHTML = `
                     <div class="border rounded-lg p-4 bg-gray-50">
                         <h4 class="text-md font-semibold text-gray-800 mb-3">${playerName}</h4>
@@ -413,50 +464,23 @@
                                         <th class="px-3 py-2 text-right font-medium">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                `;
-                
+                                <tbody>`;
                 for (const marketKey in groupedMarkets) {
                     const market = groupedMarkets[marketKey];
                     const underOutcome = market.outcomes['Under'];
                     const overOutcome = market.outcomes['Over'];
                     const yesOutcome = market.outcomes['Yes'];
-
                     tableHTML += `
                         <tr>
                             <td class="px-3 py-2 border-t">${market.marketName}</td>
-                            <td class="px-3 py-2 border-t">
-                                <input type="text" class="editable-input" value="${underOutcome?.point || overOutcome?.point || ''}" 
-                                       data-player="${playerName}" data-market-key="${marketKey}" data-type="line">
-                            </td>
-                            <td class="px-3 py-2 border-t">
-                                <input type="text" class="editable-input" value="${underOutcome?.price || ''}" 
-                                       data-player="${playerName}" data-market-key="${marketKey}" data-type="under">
-                            </td>
-                            <td class="px-3 py-2 border-t">
-                                <input type="text" class="editable-input" value="${overOutcome?.price || ''}" 
-                                       data-player="${playerName}" data-market-key="${marketKey}" data-type="over">
-                            </td>
-                            <td class="px-3 py-2 border-t">
-                                <input type="text" class="editable-input" value="${yesOutcome?.price || ''}" 
-                                       data-player="${playerName}" data-market-key="${marketKey}" data-type="1">
-                            </td>
-                            <td class="px-3 py-2 border-t text-right">
-                                <button class="text-red-500 hover:text-red-700 remove-market-btn" 
-                                        data-player="${playerName}" data-market-key="${marketKey}">
-                                    Remove
-                                </button>
-                            </td>
-                        </tr>
-                    `;
+                            <td class="px-3 py-2 border-t"><input type="text" class="editable-input" value="${underOutcome?.point || overOutcome?.point || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="line"></td>
+                            <td class="px-3 py-2 border-t"><input type="text" class="editable-input" value="${underOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="under"></td>
+                            <td class="px-3 py-2 border-t"><input type="text" class="editable-input" value="${overOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="over"></td>
+                            <td class="px-3 py-2 border-t"><input type="text" class="editable-input" value="${yesOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="1"></td>
+                            <td class="px-3 py-2 border-t text-right"><button class="text-red-500 hover:text-red-700 remove-market-btn" data-player="${playerName}" data-market-key="${marketKey}">Remove</button></td>
+                        </tr>`;
                 }
-
-                tableHTML += `
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
+                tableHTML += `</tbody></table></div></div>`;
                 listContainer.innerHTML += tableHTML;
             }
             actionsContainer.classList.remove('hidden');
@@ -468,24 +492,21 @@
                 alert('Please select a team for the LEAGUE_NAME.');
                 return null;
             }
-             if (Object.keys(selectedDataForExport).length === 0) {
+            if (Object.keys(selectedDataForExport).length === 0) {
                 alert('The export list is empty. Please add some players and markets.');
                 return null;
             }
-
             const kickoffDate = new Date(currentEventCommenceTime);
             const day = String(kickoffDate.getDate()).padStart(2, '0');
             const month = String(kickoffDate.getMonth() + 1).padStart(2, '0');
             const year = kickoffDate.getFullYear();
             const dateStr = `${day}.${month}.${year}`;
             const timeStr = kickoffDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-
             let csvRows = [];
             const headers = ['Datum', 'Vreme', 'Sifra', 'Domacin', 'Gost', '1', 'X', '2,GR', 'U', 'O', 'Yes', 'No'];
             csvRows.push(headers);
             csvRows.push(['MATCH_NAME:NFL Player Props']);
             csvRows.push([`LEAGUE_NAME:${leagueTeam} NFL Specijal`]);
-
             const formatMarketNameForCsv = (marketKey, marketName) => {
                 if (marketKey === 'player_anytime_td') return 'Touchdown Scorers';
                 if (marketKey === 'player_pass_interceptions') return 'Total Passing Interceptions';
@@ -495,18 +516,14 @@
                 }
                 return marketName;
             };
-            
             for (const playerName in selectedDataForExport) {
                 const marketsForPlayer = selectedDataForExport[playerName];
                 const groupedMarkets = marketsForPlayer.reduce((acc, marketData) => {
                     const key = marketData.marketKey;
-                    if (!acc[key]) {
-                        acc[key] = { marketName: marketData.marketName, outcomes: {} };
-                    }
+                    if (!acc[key]) acc[key] = { marketName: marketData.marketName, outcomes: {} };
                     acc[key].outcomes[marketData.outcome.name] = marketData.outcome;
                     return acc;
                 }, {});
-
                 for (const marketKey in groupedMarkets) {
                     const market = groupedMarkets[marketKey];
                     const row = Array(12).fill('');
@@ -514,29 +531,25 @@
                     row[1] = timeStr;
                     row[3] = playerName;
                     row[4] = formatMarketNameForCsv(marketKey, market.marketName);
-                    
                     const under = market.outcomes['Under'];
                     const over = market.outcomes['Over'];
                     const yes = market.outcomes['Yes'];
-
                     if (under || over) {
-                        row[7] = under?.point || over?.point || ''; // GR
-                        row[8] = under?.price || ''; // U
-                        row[9] = over?.price || ''; // O
+                        row[7] = under?.point || over?.point || '';
+                        row[8] = under?.price || '';
+                        row[9] = over?.price || '';
                     } else if (yes) {
-                        row[5] = yes.price || ''; // '1' column
+                        row[5] = yes.price || '';
                     }
                     csvRows.push(row);
                 }
             };
-
             return csvRows;
         }
 
         function previewCsv() {
             const csvRows = generateCsvData();
             if (!csvRows) return;
-            
             const csvContentString = csvRows.map(e => e.join(",")).join("\n");
             document.getElementById('csvPreviewContent').textContent = csvContentString;
             modal.classList.remove('hidden');
@@ -545,7 +558,6 @@
         function exportToCsv() {
             const csvRows = generateCsvData();
             if (!csvRows) return;
-
             let csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\r\n");
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
@@ -557,9 +569,82 @@
             document.body.removeChild(link);
         }
 
+        // --- All Odds Tab Functions ---
+        function renderAllOddsView() {
+            allOddsTabContent.innerHTML = '';
+            const bookmakers = currentFullGameData?.bookmakers;
+
+            if (!bookmakers || bookmakers.length === 0) {
+                allOddsTabContent.innerHTML = '<p class="text-center text-gray-500">No odds available for this game.</p>';
+                return;
+            }
+
+            const allAvailableMarkets = {};
+            bookmakers.forEach(bookie => {
+                bookie.markets.forEach(market => {
+                    if (!allAvailableMarkets[market.key]) {
+                        allAvailableMarkets[market.key] = {
+                            players: {}
+                        };
+                    }
+                    market.outcomes.forEach(outcome => {
+                        if (!allAvailableMarkets[market.key].players[outcome.description]) {
+                            allAvailableMarkets[market.key].players[outcome.description] = {};
+                        }
+                    });
+                });
+            });
+
+            let contentHTML = '';
+            for (const marketKey in allAvailableMarkets) {
+                const isOverUnder = marketKey.includes('yds') || marketKey.includes('points') || marketKey.includes('attempts') || marketKey.includes('completions') || marketKey.includes('receptions') || marketKey.includes('sacks') || marketKey.includes('interceptions') || marketKey.includes('tds');
+                
+                contentHTML += `<div class="border rounded-lg p-4 bg-gray-50">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">${marketsMap[marketKey] || marketKey}</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white text-sm">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="px-3 py-2 text-left font-medium">Player</th>`;
+                bookmakers.forEach(bookie => {
+                    contentHTML += `<th class="px-3 py-2 text-center font-medium">${bookie.title}</th>`;
+                });
+                contentHTML += `</tr></thead><tbody>`;
+
+                const players = Object.keys(allAvailableMarkets[marketKey].players).sort();
+                players.forEach(playerName => {
+                    contentHTML += `<tr><td class="px-3 py-2 border-t font-medium">${playerName}</td>`;
+                    bookmakers.forEach(bookie => {
+                        let cellContent = '-';
+                        const market = bookie.markets.find(m => m.key === marketKey);
+                        if (market) {
+                            const outcomes = market.outcomes.filter(o => o.description === playerName);
+                            if (outcomes.length > 0) {
+                                if (isOverUnder) {
+                                    const over = outcomes.find(o => o.name === 'Over');
+                                    const under = outcomes.find(o => o.name === 'Under');
+                                    cellContent = `
+                                        <div class="text-center">
+                                            ${over ? `<div>O ${over.point} (${over.price})</div>` : ''}
+                                            ${under ? `<div>U ${under.point} (${under.price})</div>` : ''}
+                                        </div>
+                                    `;
+                                } else {
+                                    cellContent = `<div class="text-center">${outcomes[0].price}</div>`;
+                                }
+                            }
+                        }
+                        contentHTML += `<td class="px-3 py-2 border-t">${cellContent}</td>`;
+                    });
+                    contentHTML += `</tr>`;
+                });
+                contentHTML += `</tbody></table></div></div>`;
+            }
+            allOddsTabContent.innerHTML = contentHTML;
+        }
+
     </script>
 </body>
 </html>
-
 
 
