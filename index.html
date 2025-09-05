@@ -503,7 +503,7 @@
             const dateStr = `${day}.${month}.${year}`;
             const timeStr = kickoffDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
             let csvRows = [];
-            const headers = ['Datum', 'Vreme', 'Sifra', 'Domacin', 'Gost', '1', 'X', '2,GR', 'U', 'O', 'Yes', 'No'];
+            const headers = ['Datum', 'Vreme', 'Sifra', 'Domacin', 'Gost', '1', 'X', '2', 'GR', 'U', 'O', 'Yes', 'No'];
             csvRows.push(headers);
             csvRows.push(['MATCH_NAME:NFL Player Props']);
             csvRows.push([`LEAGUE_NAME:${leagueTeam} NFL Specijal`]);
@@ -526,7 +526,7 @@
                 }, {});
                 for (const marketKey in groupedMarkets) {
                     const market = groupedMarkets[marketKey];
-                    const row = Array(12).fill('');
+                    const row = Array(13).fill('');
                     row[0] = dateStr;
                     row[1] = timeStr;
                     row[3] = playerName;
@@ -535,11 +535,11 @@
                     const over = market.outcomes['Over'];
                     const yes = market.outcomes['Yes'];
                     if (under || over) {
-                        row[7] = under?.point || over?.point || '';
-                        row[8] = under?.price || '';
-                        row[9] = over?.price || '';
+                        row[8] = under?.point || over?.point || '';  // GR
+                        row[9] = under?.price || '';                 // U
+                        row[10] = over?.price || '';                 // O
                     } else if (yes) {
-                        row[5] = yes.price || '';
+                        row[5] = yes.price || '';                    // 1
                     }
                     csvRows.push(row);
                 }
@@ -646,5 +646,4 @@
     </script>
 </body>
 </html>
-
 
