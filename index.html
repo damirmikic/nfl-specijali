@@ -139,7 +139,8 @@
             'player_rush_attempts': 'Rushing Attempts',
             'player_rush_tds': 'Rushing Touchdowns',
             'player_rush_yds': 'Rushing Yards',
-            'player_sacks': 'Sacks'
+            'player_sacks': 'Sacks',
+            'player_solo_tackles': 'Solo Tackles'
         };
         const markets = Object.keys(marketsMap).join(',');
 
@@ -597,7 +598,15 @@
 
             let contentHTML = '';
             for (const marketKey in allAvailableMarkets) {
-                const isOverUnder = marketKey.includes('yds') || marketKey.includes('points') || marketKey.includes('attempts') || marketKey.includes('completions') || marketKey.includes('receptions') || marketKey.includes('sacks') || marketKey.includes('interceptions') || marketKey.includes('tds');
+                // More robust check for Over/Under markets by inspecting actual outcome names
+                let isOverUnder = false;
+                const firstBookmakerWithMarket = bookmakers.find(b => b.markets.some(m => m.key === marketKey));
+                if (firstBookmakerWithMarket) {
+                    const marketSample = firstBookmakerWithMarket.markets.find(m => m.key === marketKey);
+                    if (marketSample && marketSample.outcomes.some(o => o.name === 'Over' || o.name === 'Under')) {
+                        isOverUnder = true;
+                    }
+                }
                 
                 contentHTML += `<div class="border rounded-lg p-4 bg-gray-50">
                     <h3 class="text-lg font-semibold text-gray-900 mb-3">${marketsMap[marketKey] || marketKey}</h3>
@@ -646,4 +655,5 @@
     </script>
 </body>
 </html>
+
 
