@@ -3,109 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NFL Player Prop Odds Fetcher</title>
+    <title>NFL Player Prop Odds Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
         }
-        .loader, .mini-loader {
-            border-top-color: #3498db;
-            -webkit-animation: spin 1s linear infinite;
+
+        .glassmorphic {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .neumorphic-button {
+            background: #f0f2f5;
+            box-shadow: 6px 6px 12px #c5c7ca, -6px -6px 12px #ffffff;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .neumorphic-button:hover {
+            box-shadow: 4px 4px 8px #c5c7ca, -4px -4px 8px #ffffff;
+        }
+        
+        .neumorphic-button:active {
+            box-shadow: inset 4px 4px 8px #c5c7ca, inset -4px -4px 8px #ffffff;
+        }
+
+        .loader {
+            border-top-color: #007aff;
             animation: spin 1s linear infinite;
-            border-style: solid;
-            border-radius: 50%;
         }
-        @-webkit-keyframes spin {
-            0% { -webkit-transform: rotate(0deg); }
-            100% { -webkit-transform: rotate(360deg); }
-        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
         select {
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
-            background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="%236b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l4 4 4-4"/></svg>');
+            background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="%236b7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l4 4 4-4"/></svg>');
             background-repeat: no-repeat;
             background-position: right 1rem center;
             background-size: 1em;
-            padding-right: 2.5rem;
         }
-        .editable-input {
-            width: 100%;
-            padding: 4px 6px;
-            border-radius: 4px;
-            border: 1px solid #d1d5db;
-            background-color: #f9fafb;
-        }
-        .editable-input:focus {
-            outline: none;
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3);
-        }
+
         .tab-button.active {
-            border-bottom-color: #3b82f6;
-            color: #3b82f6;
+            color: #007aff;
+            border-bottom: 2px solid #007aff;
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="text-gray-800">
 
     <div class="container mx-auto p-4 md:p-8">
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h1 class="text-3xl font-bold text-center text-gray-900 mb-2">NFL Player Prop Odds Builder</h1>
-            <p class="text-center text-gray-600 mb-6">Select a game, build and customize a list of player markets, then export to CSV.</p>
-            <div class="text-center">
-                <button id="fetchEventsButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
-                    Fetch Upcoming Games
-                </button>
-            </div>
-        </div>
+        
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">NFL Prop Builder</h1>
+            <p class="text-gray-600">Build, customize, and export player prop markets.</p>
+        </header>
 
-        <div id="game-selection-area" class="hidden bg-white rounded-lg shadow-md p-6 space-y-4">
-             <label for="eventsDropdown" class="block text-sm font-medium text-gray-700">1. Select a Game:</label>
-             <select id="eventsDropdown" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border">
-                </select>
-             
-             <div id="tabs-container" class="hidden mt-4 pt-4 border-t">
-                <div class="border-b border-gray-200">
-                    <nav id="tabs" class="-mb-px flex space-x-8" aria-label="Tabs">
-                        <button class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="builder">CSV Builder</button>
-                        <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="all-odds">All Odds</button>
-                    </nav>
+        <main>
+            <div id="main-content" class="glassmorphic rounded-2xl shadow-lg p-6 md:p-8">
+                
+                <div id="fetch-section" class="text-center">
+                    <button id="fetchEventsButton" class="neumorphic-button text-gray-800 font-bold py-3 px-8 rounded-full transition duration-300">
+                        Fetch Upcoming Games
+                    </button>
                 </div>
-                <div id="tab-content" class="mt-4">
-                    <div id="builder-tab-content" class="space-y-4">
+
+                <div id="game-selection-area" class="hidden space-y-6">
+                     <div>
+                         <label for="eventsDropdown" class="block text-sm font-medium text-gray-700 mb-2">Select a Game</label>
+                         <select id="eventsDropdown" class="w-full p-3 bg-white bg-opacity-80 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                         </select>
+                     </div>
+                     
+                     <div id="tabs-container" class="hidden">
+                        <div class="border-b border-gray-200">
+                            <nav id="tabs" class="flex space-x-8" aria-label="Tabs">
+                                <button class="tab-button active font-medium py-3 px-1 text-sm" data-tab="builder">CSV Builder</button>
+                                <button class="tab-button text-gray-500 hover:text-gray-700 font-medium py-3 px-1 text-sm" data-tab="all-odds">All Odds</button>
+                            </nav>
                         </div>
-                    <div id="all-odds-tab-content" class="hidden space-y-6">
+                        <div id="tab-content" class="mt-6">
+                            <div id="builder-tab-content" class="space-y-4"></div>
+                            <div id="all-odds-tab-content" class="hidden space-y-6"></div>
                         </div>
+                     </div>
                 </div>
-             </div>
-        </div>
-        
-        <div id="loader" class="hidden justify-center items-center mt-8">
-            <div class="loader ease-linear border-8 border-t-8 border-gray-200 h-32 w-32"></div>
-        </div>
-        
-        <div id="error" class="hidden mt-8 text-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
-            <strong class="font-bold">Error!</strong>
-            <span class="block sm:inline" id="errorMessage"></span>
-        </div>
+            </div>
+
+            <div id="loader" class="hidden justify-center items-center mt-8">
+                <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
+            </div>
+            
+            <div id="error" class="hidden mt-8 text-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative" role="alert">
+                <strong class="font-bold">Error!</strong>
+                <span class="block sm:inline" id="errorMessage"></span>
+            </div>
+
+        </main>
     </div>
 
-    <div id="csvPreviewModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 text-center">CSV Preview</h3>
-                <div class="mt-4 px-2 py-3">
-                    <pre id="csvPreviewContent" class="text-left text-xs sm:text-sm text-gray-700 bg-gray-100 p-4 rounded-md overflow-auto max-h-96"></pre>
+    <div id="csvPreviewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="glassmorphic rounded-2xl shadow-xl w-full max-w-4xl">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 text-center mb-4">CSV Preview</h3>
+                <div class="bg-gray-100 bg-opacity-70 p-4 rounded-xl max-h-96 overflow-auto">
+                    <pre id="csvPreviewContent" class="text-xs sm:text-sm text-gray-700"></pre>
                 </div>
-                <div class="items-center px-4 py-3">
-                    <button id="closeModalButton" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                <div class="mt-6">
+                    <button id="closeModalButton" class="w-full py-3 px-4 bg-gray-700 text-white font-medium rounded-xl hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500">
                         Close
                     </button>
                 </div>
@@ -113,8 +127,8 @@
         </div>
     </div>
 
-
     <script>
+        // JavaScript logic remains the same as it primarily handles functionality.
         const apiKey = '7ca177e18aa6a5230dddc27a238e3f73';
         const sport = 'americanfootball_nfl';
         const regions = 'us,eu';
@@ -184,6 +198,7 @@
                     populateEventsDropdown(fetchedEvents);
                     gameSelectionArea.classList.remove('hidden');
                 }
+                document.getElementById('fetch-section').classList.add('hidden');
 
             } catch (error) {
                 console.error('An error occurred:', error);
@@ -206,12 +221,12 @@
             if (!button) return;
 
             tabs.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-                btn.classList.add('text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                btn.classList.remove('active', 'text-blue-500');
+                btn.classList.add('text-gray-500', 'hover:text-gray-700');
             });
 
-            button.classList.add('active');
-            button.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            button.classList.add('active', 'text-blue-500');
+            button.classList.remove('text-gray-500', 'hover:text-gray-700');
 
             builderTabContent.classList.toggle('hidden', button.dataset.tab !== 'builder');
             allOddsTabContent.classList.toggle('hidden', button.dataset.tab !== 'all-odds');
@@ -248,8 +263,9 @@
             if (!eventId) return;
             
             tabsContainer.classList.remove('hidden');
-            builderTabContent.innerHTML = '<div class="flex justify-center"><div class="mini-loader border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>';
-            allOddsTabContent.innerHTML = '<div class="flex justify-center"><div class="mini-loader border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>';
+            const miniLoaderHTML = '<div class="flex justify-center p-8"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>';
+            builderTabContent.innerHTML = miniLoaderHTML;
+            allOddsTabContent.innerHTML = miniLoaderHTML;
 
 
             try {
@@ -262,22 +278,20 @@
                 }
                 currentFullGameData = await res.json();
                 
-                // Process data for CSV builder
                 processGameDataForBuilder(currentFullGameData);
-                // Setup UI for both tabs
                 setupCsvBuilder(homeTeam, awayTeam);
                 renderAllOddsView();
 
             } catch (error) {
-                builderTabContent.innerHTML = `<p class="text-red-500 text-center">Could not fetch player odds: ${error.message}</p>`;
-                allOddsTabContent.innerHTML = `<p class="text-red-500 text-center">Could not fetch player odds: ${error.message}</p>`;
+                const errorHTML = `<p class="text-red-500 text-center">Could not fetch player odds: ${error.message}</p>`;
+                builderTabContent.innerHTML = errorHTML;
+                allOddsTabContent.innerHTML = errorHTML;
 
             }
         });
 
         function processGameDataForBuilder(gameData) {
             const bookmakers = gameData.bookmakers || [];
-            // Find all potential bookmakers
             const pinnacle = bookmakers.find(b => b.key === 'pinnacle');
             const caesars = bookmakers.find(b => b.title.toLowerCase().includes('caesars'));
             const draftkings = bookmakers.find(b => b.key === 'draftkings');
@@ -287,14 +301,12 @@
             const betonline = bookmakers.find(b => b.key === 'betonlineag');
             const fanduel = bookmakers.find(b => b.key === 'fanduel');
 
-            // Define priority lists, filtering out any that weren't found in the API response
             const kickingPointsPriority = [betmgm, bovada, fanatics, draftkings, pinnacle].filter(Boolean);
             const sacksPriority = [betonline, fanduel, draftkings, pinnacle, caesars, betmgm].filter(Boolean);
             const defaultPriority = [pinnacle, caesars, draftkings].filter(Boolean);
             
             allPlayersData = {};
             
-            // Get a master list of all players from all bookmakers
             const allPlayerNames = new Set();
             bookmakers.forEach(bookie => {
                 bookie.markets.forEach(market => {
@@ -306,7 +318,6 @@
             allPlayerNames.forEach(playerName => {
                 const addedMarkets = new Set();
                 
-                // Function to process a list of bookmakers for a specific market
                 const findAndAddMarket = (marketKey, priorityList) => {
                     if (addedMarkets.has(marketKey)) return;
 
@@ -326,13 +337,12 @@
                                     });
                                 });
                                 addedMarkets.add(marketKey);
-                                return; // Found the market from the highest priority bookie, stop searching for this market
+                                return;
                             }
                         }
                     }
                 };
-
-                // Iterate over all possible markets and apply the correct priority
+                
                 Object.keys(marketsMap).forEach(marketKey => {
                     if (marketKey === 'player_kicking_points') {
                         findAndAddMarket(marketKey, kickingPointsPriority);
@@ -345,7 +355,6 @@
             });
         }
         
-        // --- CSV Builder Functions ---
         function setupCsvBuilder(homeTeam, awayTeam) {
              builderTabContent.innerHTML = '';
              if (Object.keys(allPlayersData).length === 0) {
@@ -355,30 +364,32 @@
 
             const allPlayerNames = Object.keys(allPlayersData).sort();
             const builderHTML = `
-                <div>
-                    <label for="leagueTeamDropdown" class="block text-sm font-medium text-gray-700">2. Select Team for LEAGUE_NAME:</label>
-                    <select id="leagueTeamDropdown" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border">
-                        <option value="">-- Select Team --</option>
-                        <option value="${awayTeam}">${awayTeam}</option>
-                        <option value="${homeTeam}">${homeTeam}</option>
-                    </select>
-                </div>
-                <div>
-                     <label for="playerAddDropdown" class="block text-sm font-medium text-gray-700">3. Add Players to Export List:</label>
-                     <div class="mt-1 flex rounded-md shadow-sm">
-                        <select id="playerAddDropdown" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-l-md border">
-                            <option value="">-- Select a player to add --</option>
-                            ${allPlayerNames.map(name => `<option value="${name}">${name}</option>`).join('')}
+                <div class="space-y-6">
+                    <div>
+                        <label for="leagueTeamDropdown" class="block text-sm font-medium text-gray-700 mb-2">Team for LEAGUE_NAME</label>
+                        <select id="leagueTeamDropdown" class="w-full p-3 bg-white bg-opacity-80 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Select Team --</option>
+                            <option value="${awayTeam}">${awayTeam}</option>
+                            <option value="${homeTeam}">${homeTeam}</option>
                         </select>
-                        <button id="addPlayerButton" class="px-4 py-2 border border-l-0 border-gray-300 bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-r-md">Add</button>
+                    </div>
+                    <div>
+                         <label for="playerAddDropdown" class="block text-sm font-medium text-gray-700 mb-2">Add Player to List</label>
+                         <div class="flex">
+                            <select id="playerAddDropdown" class="w-full p-3 bg-white bg-opacity-80 border border-gray-200 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">-- Select a player --</option>
+                                ${allPlayerNames.map(name => `<option value="${name}">${name}</option>`).join('')}
+                            </select>
+                            <button id="addPlayerButton" class="px-5 py-3 bg-blue-600 text-white font-semibold rounded-r-xl hover:bg-blue-700 transition-colors">Add</button>
+                        </div>
                     </div>
                 </div>
-                <div id="export-list-container" class="mt-4 space-y-4"></div>
-                 <div id="export-actions-container" class="hidden mt-6 text-center space-x-2 sm:space-x-4">
-                    <button id="previewCsvButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Preview CSV</button>
-                    <button id="exportCsvButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Export to CSV</button>
-                    <button id="resetCsvButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Poništi unos</button>
-                    <button id="newCsvButton" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg">Generiši novi CSV</button>
+                <div id="export-list-container" class="mt-6 space-y-4"></div>
+                <div id="export-actions-container" class="hidden mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <button id="previewCsvButton" class="w-full py-3 px-4 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors">Preview CSV</button>
+                    <button id="exportCsvButton" class="w-full py-3 px-4 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors">Export to CSV</button>
+                    <button id="resetCsvButton" class="w-full py-3 px-4 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors">Reset</button>
+                    <button id="newCsvButton" class="w-full py-3 px-4 bg-yellow-500 text-white font-medium rounded-xl hover:bg-yellow-600 transition-colors">New CSV</button>
                 </div>
             `;
             builderTabContent.innerHTML = builderHTML;
@@ -394,8 +405,10 @@
 
         function resetCsvForm() {
             selectedDataForExport = {};
-            document.getElementById('leagueTeamDropdown').value = '';
-            document.getElementById('playerAddDropdown').value = '';
+            const leagueTeamDropdown = document.getElementById('leagueTeamDropdown');
+            if(leagueTeamDropdown) leagueTeamDropdown.value = '';
+            const playerAddDropdown = document.getElementById('playerAddDropdown');
+            if(playerAddDropdown) playerAddDropdown.value = '';
             renderSelectedPlayersAndMarkets();
         }
         
@@ -458,18 +471,18 @@
                     return acc;
                 }, {});
                 let tableHTML = `
-                    <div class="border rounded-lg p-4 bg-gray-50">
-                        <h4 class="text-md font-semibold text-gray-800 mb-3">${playerName}</h4>
+                    <div class="glassmorphic rounded-xl p-4">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3">${playerName}</h4>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white text-sm">
-                                <thead class="bg-gray-100">
+                            <table class="min-w-full bg-white bg-opacity-70 text-sm">
+                                <thead class="bg-gray-50 bg-opacity-70">
                                     <tr>
-                                        <th class="px-3 py-2 text-left font-medium w-2/5">Market</th>
-                                        <th class="px-3 py-2 text-left font-medium">Line</th>
-                                        <th class="px-3 py-2 text-left font-medium">Under</th>
-                                        <th class="px-3 py-2 text-left font-medium">Over</th>
-                                        <th class="px-3 py-2 text-left font-medium">1</th>
-                                        <th class="px-3 py-2 text-right font-medium">Action</th>
+                                        <th class="px-4 py-2 text-left font-medium">Market</th>
+                                        <th class="px-4 py-2 text-left font-medium">Line</th>
+                                        <th class="px-4 py-2 text-left font-medium">Under</th>
+                                        <th class="px-4 py-2 text-left font-medium">Over</th>
+                                        <th class="px-4 py-2 text-left font-medium">1</th>
+                                        <th class="px-4 py-2 text-right font-medium"></th>
                                     </tr>
                                 </thead>
                                 <tbody>`;
@@ -478,14 +491,15 @@
                     const underOutcome = market.outcomes['Under'];
                     const overOutcome = market.outcomes['Over'];
                     const yesOutcome = market.outcomes['Yes'];
+                    const editableInputBaseClasses = "editable-input w-full p-2 bg-gray-100 bg-opacity-70 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500";
                     tableHTML += `
-                        <tr>
-                            <td class="px-3 py-2 border-t">${market.marketName}</td>
-                            <td class="px-3 py-2 border-t"><input type="text" class="editable-input" value="${underOutcome?.point || overOutcome?.point || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="line"></td>
-                            <td class="px-3 py-2 border-t"><input type="text" class="editable-input" value="${underOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="under"></td>
-                            <td class="px-3 py-2 border-t"><input type="text" class="editable-input" value="${overOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="over"></td>
-                            <td class="px-3 py-2 border-t"><input type="text" class="editable-input" value="${yesOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="1"></td>
-                            <td class="px-3 py-2 border-t text-right"><button class="text-red-500 hover:text-red-700 remove-market-btn" data-player="${playerName}" data-market-key="${marketKey}">Remove</button></td>
+                        <tr class="border-t border-gray-200">
+                            <td class="px-4 py-2">${market.marketName}</td>
+                            <td class="px-4 py-2"><input type="text" class="${editableInputBaseClasses}" value="${underOutcome?.point || overOutcome?.point || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="line"></td>
+                            <td class="px-4 py-2"><input type="text" class="${editableInputBaseClasses}" value="${underOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="under"></td>
+                            <td class="px-4 py-2"><input type="text" class="${editableInputBaseClasses}" value="${overOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="over"></td>
+                            <td class="px-4 py-2"><input type="text" class="${editableInputBaseClasses}" value="${yesOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="1"></td>
+                            <td class="px-4 py-2 text-right"><button class="text-red-500 hover:text-red-700 remove-market-btn" data-player="${playerName}" data-market-key="${marketKey}">Remove</button></td>
                         </tr>`;
                 }
                 tableHTML += `</tbody></table></div></div>`;
@@ -543,11 +557,11 @@
                     const over = market.outcomes['Over'];
                     const yes = market.outcomes['Yes'];
                     if (under || over) {
-                        row[8] = under?.point || over?.point || '';  // GR
-                        row[9] = under?.price || '';                 // U
-                        row[10] = over?.price || '';                 // O
+                        row[8] = under?.point || over?.point || '';
+                        row[9] = under?.price || '';
+                        row[10] = over?.price || '';
                     } else if (yes) {
-                        row[5] = yes.price || '';                    // 1
+                        row[5] = yes.price || '';
                     }
                     csvRows.push(row);
                 }
@@ -577,7 +591,6 @@
             document.body.removeChild(link);
         }
 
-        // --- All Odds Tab Functions ---
         function renderAllOddsView() {
             allOddsTabContent.innerHTML = '';
             const bookmakers = currentFullGameData?.bookmakers;
@@ -591,9 +604,7 @@
             bookmakers.forEach(bookie => {
                 bookie.markets.forEach(market => {
                     if (!allAvailableMarkets[market.key]) {
-                        allAvailableMarkets[market.key] = {
-                            players: {}
-                        };
+                        allAvailableMarkets[market.key] = { players: {} };
                     }
                     market.outcomes.forEach(outcome => {
                         if (!allAvailableMarkets[market.key].players[outcome.description]) {
@@ -605,7 +616,6 @@
 
             let contentHTML = '';
             for (const marketKey in allAvailableMarkets) {
-                // More robust check for Over/Under markets by inspecting actual outcome names
                 let isOverUnder = false;
                 const firstBookmakerWithMarket = bookmakers.find(b => b.markets.some(m => m.key === marketKey));
                 if (firstBookmakerWithMarket) {
@@ -615,21 +625,21 @@
                     }
                 }
                 
-                contentHTML += `<div class="border rounded-lg p-4 bg-gray-50">
+                contentHTML += `<div class="glassmorphic rounded-xl p-4">
                     <h3 class="text-lg font-semibold text-gray-900 mb-3">${marketsMap[marketKey] || marketKey}</h3>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white text-sm">
-                            <thead class="bg-gray-100">
+                        <table class="min-w-full bg-white bg-opacity-70 text-sm">
+                            <thead class="bg-gray-50 bg-opacity-70">
                                 <tr>
-                                    <th class="px-3 py-2 text-left font-medium">Player</th>`;
+                                    <th class="px-4 py-2 text-left font-medium">Player</th>`;
                 bookmakers.forEach(bookie => {
-                    contentHTML += `<th class="px-3 py-2 text-center font-medium">${bookie.title}</th>`;
+                    contentHTML += `<th class="px-4 py-2 text-center font-medium">${bookie.title}</th>`;
                 });
                 contentHTML += `</tr></thead><tbody>`;
 
                 const players = Object.keys(allAvailableMarkets[marketKey].players).sort();
                 players.forEach(playerName => {
-                    contentHTML += `<tr><td class="px-3 py-2 border-t font-medium">${playerName}</td>`;
+                    contentHTML += `<tr class="border-t border-gray-200"><td class="px-4 py-2 font-medium">${playerName}</td>`;
                     bookmakers.forEach(bookie => {
                         let cellContent = '-';
                         const market = bookie.markets.find(m => m.key === marketKey);
@@ -640,7 +650,7 @@
                                     const over = outcomes.find(o => o.name === 'Over');
                                     const under = outcomes.find(o => o.name === 'Under');
                                     cellContent = `
-                                        <div class="text-center">
+                                        <div class="text-center text-xs">
                                             ${over ? `<div>O ${over.point} (${over.price})</div>` : ''}
                                             ${under ? `<div>U ${under.point} (${under.price})</div>` : ''}
                                         </div>
@@ -650,7 +660,7 @@
                                 }
                             }
                         }
-                        contentHTML += `<td class="px-3 py-2 border-t">${cellContent}</td>`;
+                        contentHTML += `<td class="px-4 py-2">${cellContent}</td>`;
                     });
                     contentHTML += `</tr>`;
                 });
