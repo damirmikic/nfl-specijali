@@ -69,8 +69,7 @@
         <div id="game-selection-area" class="hidden bg-white rounded-lg shadow-md p-6 space-y-4">
              <label for="eventsDropdown" class="block text-sm font-medium text-gray-700">1. Select a Game:</label>
              <select id="eventsDropdown" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border">
-                <!-- Options will be populated here -->
-             </select>
+                </select>
              
              <div id="tabs-container" class="hidden mt-4 pt-4 border-t">
                 <div class="border-b border-gray-200">
@@ -81,11 +80,9 @@
                 </div>
                 <div id="tab-content" class="mt-4">
                     <div id="builder-tab-content" class="space-y-4">
-                        <!-- CSV builder UI will be loaded here -->
-                    </div>
+                        </div>
                     <div id="all-odds-tab-content" class="hidden space-y-6">
-                        <!-- All odds comparison UI will be loaded here -->
-                    </div>
+                        </div>
                 </div>
              </div>
         </div>
@@ -100,7 +97,6 @@
         </div>
     </div>
 
-    <!-- CSV Preview Modal -->
     <div id="csvPreviewModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
         <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 shadow-lg rounded-md bg-white">
             <div class="mt-3">
@@ -378,9 +374,11 @@
                     </div>
                 </div>
                 <div id="export-list-container" class="mt-4 space-y-4"></div>
-                 <div id="export-actions-container" class="hidden mt-6 text-center space-x-4">
+                 <div id="export-actions-container" class="hidden mt-6 text-center space-x-2 sm:space-x-4">
                     <button id="previewCsvButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Preview CSV</button>
                     <button id="exportCsvButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Export to CSV</button>
+                    <button id="resetCsvButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Poništi unos</button>
+                    <button id="newCsvButton" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg">Generiši novi CSV</button>
                 </div>
             `;
             builderTabContent.innerHTML = builderHTML;
@@ -390,6 +388,15 @@
             document.getElementById('exportCsvButton').addEventListener('click', exportToCsv);
             document.getElementById('export-list-container').addEventListener('click', handleRemoveMarket);
             document.getElementById('export-list-container').addEventListener('input', handleDataChange);
+            document.getElementById('resetCsvButton').addEventListener('click', resetCsvForm);
+            document.getElementById('newCsvButton').addEventListener('click', resetCsvForm);
+        }
+
+        function resetCsvForm() {
+            selectedDataForExport = {};
+            document.getElementById('leagueTeamDropdown').value = '';
+            document.getElementById('playerAddDropdown').value = '';
+            renderSelectedPlayersAndMarkets();
         }
         
         function handleAddPlayer() {
@@ -655,5 +662,3 @@
     </script>
 </body>
 </html>
-
-
