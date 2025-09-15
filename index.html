@@ -128,8 +128,7 @@
     </div>
 
     <script>
-        // JavaScript logic remains the same as it primarily handles functionality.
-        const apiKey = '1e30e7da5e0e30de1fcf9c893ed64ce6';
+        // No API key on the frontend
         const sport = 'americanfootball_nfl';
         const regions = 'us,eu';
         const oddsFormat = 'decimal';
@@ -182,7 +181,8 @@
             fetchEventsButton.classList.add('opacity-50', 'cursor-not-allowed');
 
             try {
-                const eventsUrl = `https://api.the-odds-api.com/v4/sports/${sport}/events?apiKey=${apiKey}`;
+                // Call the Netlify function instead of the API directly
+                const eventsUrl = `/.netlify/functions/proxy?endpoint=sports/${sport}/events`;
                 const eventsResponse = await fetch(eventsUrl);
                 if (!eventsResponse.ok) {
                     const errorData = await eventsResponse.json();
@@ -266,9 +266,9 @@
             builderTabContent.innerHTML = miniLoaderHTML;
             allOddsTabContent.innerHTML = miniLoaderHTML;
 
-
             try {
-                const oddsUrl = `https://api.the-odds-api.com/v4/sports/${sport}/events/${eventId}/odds?apiKey=${apiKey}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
+                // Call the Netlify function for odds, passing parameters
+                const oddsUrl = `/.netlify/functions/proxy?endpoint=sports/${sport}/events/${eventId}/odds&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
                 const res = await fetch(oddsUrl);
 
                 if (!res.ok) {
@@ -285,10 +285,11 @@
                 const errorHTML = `<p class="text-red-500 text-center">Could not fetch player odds: ${error.message}</p>`;
                 builderTabContent.innerHTML = errorHTML;
                 allOddsTabContent.innerHTML = errorHTML;
-
             }
         });
-
+        
+        // All other functions (processGameDataForBuilder, setupCsvBuilder, etc.) remain exactly the same.
+        // ... (paste the rest of your original JavaScript functions here without any changes)
         function processGameDataForBuilder(gameData) {
             const bookmakers = gameData.bookmakers || [];
             const pinnacle = bookmakers.find(b => b.key === 'pinnacle');
