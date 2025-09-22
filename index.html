@@ -172,9 +172,8 @@
         let currentFullGameData = null;
         let currentEventCommenceTime = null;
         let selectedDataForExport = {}; 
-        let nflPlayersData = []; // Variable to store players from nfl_players.json
+        let nflPlayersData = []; 
 
-        // Function to load nfl_players.json
         async function loadNflPlayersData() {
             try {
                 const response = await fetch('nfl_players.json');
@@ -182,14 +181,27 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 nflPlayersData = await response.json();
+
+                const teams = [...new Set(nflPlayersData.map(p => p.team))];
+                teams.forEach(team => {
+                    if (team && team !== "Multiple Teams") {
+                        nflPlayersData.push({ name: `${team} defensive td`, team: team });
+                        nflPlayersData.push({ name: `${team} D/ST`, team: team });
+                    }
+                });
+
             } catch (error) {
                 console.error("Could not load nfl_players.json:", error);
                 errorMessage.textContent = "Could not load local player data. Filtering will not work.";
                 errorDiv.classList.remove('hidden');
             }
         }
+        
+        function findPlayerTeam(playerName) {
+            const player = nflPlayersData.find(p => p.name === playerName);
+            return player ? player.team : 'N/A';
+        }
 
-        // Call the function to load the local JSON data when the script loads
         document.addEventListener('DOMContentLoaded', loadNflPlayersData);
 
 
@@ -245,18 +257,21 @@
         tabs.addEventListener('click', (e) => {
             const button = e.target.closest('.tab-button');
             if (!button) return;
-
+            switchTab(button.dataset.tab);
+        });
+        
+        function switchTab(tabName) {
             tabs.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active', 'text-blue-500');
-                btn.classList.add('text-gray-500', 'hover:text-gray-700');
+                const isActive = btn.dataset.tab === tabName;
+                btn.classList.toggle('active', isActive);
+                btn.classList.toggle('text-blue-500', isActive);
+                btn.classList.toggle('text-gray-500', !isActive);
+                btn.classList.toggle('hover:text-gray-700', !isActive);
             });
 
-            button.classList.add('active', 'text-blue-500');
-            button.classList.remove('text-gray-500', 'hover:text-gray-700');
-
-            builderTabContent.classList.toggle('hidden', button.dataset.tab !== 'builder');
-            allOddsTabContent.classList.toggle('hidden', button.dataset.tab !== 'all-odds');
-        });
+            builderTabContent.classList.toggle('hidden', tabName !== 'builder');
+            allOddsTabContent.classList.toggle('hidden', tabName !== 'all-odds');
+        }
 
         function populateEventsDropdown(events) {
             eventsDropdown.innerHTML = '<option value="">-- Please select a match --</option>'; 
@@ -391,14 +406,13 @@
         
         function setupCsvBuilder(homeTeam, awayTeam) {
              builderTabContent.innerHTML = '';
-             if (Object.keys(allPlayersData).length === 0) {
+             if (Object.keys(allPlayersData).length === 0 && nflPlayersData.length === 0) {
                 builderTabContent.innerHTML = '<p class="text-center text-gray-500">No player prop markets found for this game.</p>';
                 return;
             }
             
-            // Filter players based on the selected teams
             const teamPlayers = nflPlayersData.filter(p => p.team === homeTeam || p.team === awayTeam).map(p => p.name);
-            const allPlayerNames = Object.keys(allPlayersData).filter(apiPlayer => teamPlayers.includes(apiPlayer)).sort();
+            const allAvailableNames = [...new Set([...Object.keys(allPlayersData), ...teamPlayers])].sort();
 
 
             const builderHTML = `
@@ -416,7 +430,7 @@
                          <div class="flex">
                             <select id="playerAddDropdown" class="w-full p-3 bg-white bg-opacity-80 border border-gray-200 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">-- Select a player --</option>
-                                ${allPlayerNames.map(name => `<option value="${name}">${name}</option>`).join('')}
+                                ${allAvailableNames.map(name => `<option value="${name}">${name}</option>`).join('')}
                             </select>
                             <button id="addPlayerButton" class="px-5 py-3 bg-blue-600 text-white font-semibold rounded-r-xl hover:bg-blue-700 transition-colors">Add</button>
                         </div>
@@ -454,11 +468,21 @@
             const playerDropdown = document.getElementById('playerAddDropdown');
             const playerName = playerDropdown.value;
             if (playerName && !selectedDataForExport[playerName]) {
-                selectedDataForExport[playerName] = JSON.parse(JSON.stringify(allPlayersData[playerName]));
+                if (allPlayersData[playerName]) {
+                    selectedDataForExport[playerName] = JSON.parse(JSON.stringify(allPlayersData[playerName]));
+                } else if (playerName.includes('defensive td') || playerName.includes('D/ST')) {
+                    selectedDataForExport[playerName] = [{
+                        marketKey: 'player_anytime_td',
+                        marketName: 'Anytime Touchdown Scorer',
+                        outcome: { name: 'Yes', description: playerName, price: '' },
+                        bookmaker: 'Manual'
+                    }];
+                }
                 renderSelectedPlayersAndMarkets();
             }
             playerDropdown.value = '';
         }
+
         
         function handleRemoveMarket(event) {
             const removeButton = event.target.closest('.remove-market-btn');
@@ -629,6 +653,27 @@
             document.body.removeChild(link);
         }
 
+        allOddsTabContent.addEventListener('click', (event) => {
+            const addButton = event.target.closest('.add-player-from-all-odds-btn');
+            if (!addButton) return;
+
+            const playerName = addButton.dataset.playerName;
+            if (!playerName || !allPlayersData[playerName]) return;
+
+            if (selectedDataForExport[playerName]) {
+                alert('Player is already added to the CSV Builder.');
+                return;
+            }
+
+            selectedDataForExport[playerName] = JSON.parse(JSON.stringify(allPlayersData[playerName]));
+            renderSelectedPlayersAndMarkets();
+            
+            addButton.textContent = 'Added';
+            addButton.disabled = true;
+            addButton.classList.add('bg-green-600', 'cursor-not-allowed');
+            switchTab('builder');
+        });
+
         function renderAllOddsView() {
             allOddsTabContent.innerHTML = '';
             const bookmakers = currentFullGameData?.bookmakers;
@@ -673,11 +718,17 @@
                 bookmakers.forEach(bookie => {
                     contentHTML += `<th class="px-4 py-2 text-center font-medium">${bookie.title}</th>`;
                 });
-                contentHTML += `</tr></thead><tbody>`;
+                contentHTML += `<th class="px-4 py-2 text-right font-medium">Action</th></tr></thead><tbody>`;
 
                 const players = Object.keys(allAvailableMarkets[marketKey].players).sort();
                 players.forEach(playerName => {
-                    contentHTML += `<tr class="border-t border-gray-200"><td class="px-4 py-2 font-medium">${playerName}</td>`;
+                    const team = findPlayerTeam(playerName);
+                    const isAlreadyAdded = !!selectedDataForExport[playerName];
+                    
+                    contentHTML += `<tr class="border-t border-gray-200">
+                        <td class="px-4 py-2 font-medium">
+                            ${playerName} <span class="text-xs text-gray-500 font-normal">(${team})</span>
+                        </td>`;
                     bookmakers.forEach(bookie => {
                         let cellContent = '-';
                         const market = bookie.markets.find(m => m.key === marketKey);
@@ -700,7 +751,17 @@
                         }
                         contentHTML += `<td class="px-4 py-2">${cellContent}</td>`;
                     });
-                    contentHTML += `</tr>`;
+                    
+                    contentHTML += `
+                        <td class="px-4 py-2 text-right">
+                            <button 
+                                class="add-player-from-all-odds-btn text-white font-bold py-1 px-3 rounded-lg text-xs transition-colors ${isAlreadyAdded ? 'bg-green-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}" 
+                                data-player-name="${playerName}"
+                                ${isAlreadyAdded ? 'disabled' : ''}>
+                                ${isAlreadyAdded ? 'Added' : 'Add'}
+                            </button>
+                        </td>
+                    </tr>`;
                 });
                 contentHTML += `</tbody></table></div></div>`;
             }
