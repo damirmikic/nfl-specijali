@@ -172,6 +172,26 @@
         let currentFullGameData = null;
         let currentEventCommenceTime = null;
         let selectedDataForExport = {}; 
+        let nflPlayersData = []; // Variable to store players from nfl_players.json
+
+        // Function to load nfl_players.json
+        async function loadNflPlayersData() {
+            try {
+                const response = await fetch('nfl_players.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                nflPlayersData = await response.json();
+            } catch (error) {
+                console.error("Could not load nfl_players.json:", error);
+                errorMessage.textContent = "Could not load local player data. Filtering will not work.";
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        // Call the function to load the local JSON data when the script loads
+        document.addEventListener('DOMContentLoaded', loadNflPlayersData);
+
 
         fetchEventsButton.addEventListener('click', async () => {
             gameSelectionArea.classList.add('hidden');
@@ -375,8 +395,12 @@
                 builderTabContent.innerHTML = '<p class="text-center text-gray-500">No player prop markets found for this game.</p>';
                 return;
             }
+            
+            // Filter players based on the selected teams
+            const teamPlayers = nflPlayersData.filter(p => p.team === homeTeam || p.team === awayTeam).map(p => p.name);
+            const allPlayerNames = Object.keys(allPlayersData).filter(apiPlayer => teamPlayers.includes(apiPlayer)).sort();
 
-            const allPlayerNames = Object.keys(allPlayersData).sort();
+
             const builderHTML = `
                 <div class="space-y-6">
                     <div>
