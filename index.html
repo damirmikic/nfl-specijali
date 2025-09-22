@@ -614,6 +614,9 @@
                 if (marketKey === 'player_anytime_td') return 'Touchdown Scorers';
                 if (marketKey === 'player_pass_interceptions') return 'Total Passing Interceptions';
                 if (marketKey === 'player_defensive_interceptions') return 'Total Interceptions';
+                if (marketKey === 'player_rush_longest') return 'Longest Rush';
+                if (marketKey === 'player_pass_longest_completion') return 'Longest Pass Completion';
+                if (marketKey ===  'player_reception_longest') return 'Longest Reception';
                 if (!marketName.toLowerCase().startsWith('total ') && !marketName.toLowerCase().includes('touchdown')) {
                     return `Total ${marketName}`;
                 }
