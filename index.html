@@ -410,10 +410,19 @@
                 builderTabContent.innerHTML = '<p class="text-center text-gray-500">No player prop markets found for this game.</p>';
                 return;
             }
-            
-            const teamPlayers = nflPlayersData.filter(p => p.team === homeTeam || p.team === awayTeam).map(p => p.name);
-            const allAvailableNames = [...new Set([...Object.keys(allPlayersData), ...teamPlayers])].sort();
 
+            const getDropdownOptions = (selectedTeam = null) => {
+                const teamsToInclude = selectedTeam ? [selectedTeam] : [homeTeam, awayTeam];
+                const teamPlayerAndSpecialNames = nflPlayersData
+                    .filter(p => teamsToInclude.includes(p.team))
+                    .map(p => p.name);
+
+                return teamPlayerAndSpecialNames
+                    .filter(name => allPlayersData[name] || name.includes('defensive td') || name.includes('D/ST'))
+                    .sort();
+            };
+
+            const initialOptions = getDropdownOptions();
 
             const builderHTML = `
                 <div class="space-y-6">
@@ -430,7 +439,7 @@
                          <div class="flex">
                             <select id="playerAddDropdown" class="w-full p-3 bg-white bg-opacity-80 border border-gray-200 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">-- Select a player --</option>
-                                ${allAvailableNames.map(name => `<option value="${name}">${name}</option>`).join('')}
+                                ${initialOptions.map(name => `<option value="${name}">${name}</option>`).join('')}
                             </select>
                             <button id="addPlayerButton" class="px-5 py-3 bg-blue-600 text-white font-semibold rounded-r-xl hover:bg-blue-700 transition-colors">Add</button>
                         </div>
@@ -445,6 +454,16 @@
                 </div>
             `;
             builderTabContent.innerHTML = builderHTML;
+
+            const leagueTeamDropdown = document.getElementById('leagueTeamDropdown');
+            const playerAddDropdown = document.getElementById('playerAddDropdown');
+
+            leagueTeamDropdown.addEventListener('change', (e) => {
+                const selectedTeam = e.target.value;
+                const newOptions = getDropdownOptions(selectedTeam);
+                playerAddDropdown.innerHTML = `<option value="">-- Select a player --</option>` + 
+                                              newOptions.map(name => `<option value="${name}">${name}</option>`).join('');
+            });
             
             document.getElementById('addPlayerButton').addEventListener('click', handleAddPlayer);
             document.getElementById('previewCsvButton').addEventListener('click', previewCsv);
