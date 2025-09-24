@@ -128,7 +128,7 @@
     </div>
 
     <script>
-        const apiKey = '343dca4938dc1e792b7c546d718b23b5';
+        // API keys are no longer stored here for security. They are managed by Netlify Functions.
         const sport = 'americanfootball_nfl';
         const regions = 'us,eu';
         const oddsFormat = 'decimal';
@@ -154,6 +154,7 @@
         };
         const markets = Object.keys(marketsMap).join(',');
 
+        // DOM Elements
         const fetchEventsButton = document.getElementById('fetchEventsButton');
         const gameSelectionArea = document.getElementById('game-selection-area');
         const eventsDropdown = document.getElementById('eventsDropdown');
@@ -167,6 +168,7 @@
         const modal = document.getElementById('csvPreviewModal');
         const closeModalButton = document.getElementById('closeModalButton');
         
+        // State variables
         let fetchedEvents = [];
         let allPlayersData = {};
         let currentFullGameData = null;
@@ -219,7 +221,8 @@
                 if (cachedEvents) {
                     fetchedEvents = JSON.parse(cachedEvents);
                 } else {
-                    const eventsUrl = `https://api.the-odds-api.com/v4/sports/${sport}/events?apiKey=${apiKey}`;
+                    // Use the Netlify function to fetch events
+                    const eventsUrl = `/.netlify/functions/get-events?sport=${sport}`;
                     const eventsResponse = await fetch(eventsUrl);
                     if (!eventsResponse.ok) {
                         const errorData = await eventsResponse.json();
@@ -316,7 +319,8 @@
                 if (cachedOdds) {
                     currentFullGameData = JSON.parse(cachedOdds);
                 } else {
-                    const oddsUrl = `https://api.the-odds-api.com/v4/sports/${sport}/events/${eventId}/odds?apiKey=${apiKey}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
+                    // Use the Netlify function to fetch odds
+                    const oddsUrl = `/.netlify/functions/get-odds?sport=${sport}&eventId=${eventId}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
                     const res = await fetch(oddsUrl);
 
                     if (!res.ok) {
