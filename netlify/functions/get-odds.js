@@ -1,14 +1,7 @@
 // This function fetches odds for a specific game event.
-// It securely accesses and rotates API keys from your Netlify environment variables.
-
-// To enable this function, you must do two things:
-// 1. Create an environment variable in your Netlify site settings called `API_KEYS`.
-// 2. The value should be your API keys, separated by commas (e.g., key1,key2,key3).
+// It securely accesses and RANDOMLY selects an API key from your Netlify environment variables.
 
 const fetch = require('node-fetch');
-
-// Store key index outside the handler to rotate on each invocation
-let keyIndex = 0;
 
 exports.handler = async function (event, context) {
   const { sport, eventId, markets, regions, oddsFormat } = event.queryStringParameters;
@@ -23,9 +16,8 @@ exports.handler = async function (event, context) {
 
   const apiKeys = apiKeysString.split(',');
   
-  // Rotate to the next key for the next function execution
-  const apiKey = apiKeys[keyIndex].trim();
-  keyIndex = (keyIndex + 1) % apiKeys.length;
+  // Select a random key from the array for each invocation
+  const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)].trim();
 
   const apiUrl = `https://api.the-odds-api.com/v4/sports/${sport}/events/${eventId}/odds?apiKey=${apiKey}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
 
@@ -51,3 +43,4 @@ exports.handler = async function (event, context) {
     };
   }
 };
+
