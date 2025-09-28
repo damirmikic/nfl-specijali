@@ -108,7 +108,7 @@
     "team": "Denver Broncos"
   },
   {
-    "name": "Deebo Samuel",
+    "name": "Deebo Samuel Sr.",
     "team": "Washington Commanders"
   },
   {
@@ -1668,7 +1668,7 @@
     "team": "Chicago Bears"
   },
   {
-    "name": "Carlos Washington",
+    "name": "Carlos Washington Jr.",
     "team": "Atlanta Falcons"
   },
   {
@@ -4535,6 +4535,23 @@
   {
     "name": "DJ Reader",
     "team": "Detroit Lions"
+  },
+  {
+    "name": "Marcus Mariota",
+    "team": "Washington Commanders"
+  },
+  {
+    "name": "Michael Penix Jr.",
+    "team": "Atlanta Falcons"
+  },
+  {
+    "name": "Chris Rodriguez Jr.",
+    "team": "Washington Commanders"
+  },
+  {
+    "name": "Christian Kirk",
+    "team": "Houston Texans"
   }
 ]
+
 
