@@ -68,7 +68,7 @@
     "team": "Baltimore Ravens"
   },
   {
-    "name": "Travis Etienne",
+    "name": "Travis Etienne Jr.",
     "team": "Jacksonville Jaguars"
   },
   {
@@ -280,7 +280,7 @@
     "team": "New York Jets"
   },
   {
-    "name": "Harold Fannin",
+    "name": "Harold Fannin Jr.",
     "team": "Cleveland Browns"
   },
   {
@@ -504,7 +504,7 @@
     "team": "Denver Broncos"
   },
   {
-    "name": "Brian Thomas Jr.",
+    "name": "Brian Thomas Jr",
     "team": "Jacksonville Jaguars"
   },
   {
@@ -540,7 +540,7 @@
     "team": "Tampa Bay Buccaneers"
   },
   {
-    "name": "Ollie Gordon",
+    "name": "Ollie Gordon II",
     "team": "Miami Dolphins"
   },
   {
@@ -1064,7 +1064,7 @@
     "team": "Green Bay Packers"
   },
   {
-    "name": "LeQuint Allen",
+    "name": "LeQuint Allen Jr.",
     "team": "Jacksonville Jaguars"
   },
   {
@@ -1704,7 +1704,7 @@
     "team": "Green Bay Packers"
   },
   {
-    "name": "Jeff Wilson",
+    "name": "Jeff Wilson Jr.",
     "team": "Miami Dolphins"
   },
   {
@@ -4555,8 +4555,121 @@
   {
     "name": "Cairo Santos",
     "team": "Chicago Bears"
-  }
+  },
+  {
+    "name": "Demarcus Robinson",
+    "team": "San Francisco 49ers"
+  },
+  {
+    "name": "James Jordan",
+    "team": "San Francisco 49ers"
+  },
+  {
+    "name": "Marquez Valdes-Scantling",
+    "team": "San Francisco 49ers"
+  },
+  {
+    "name": "Skyy Moore",
+    "team": "San Francisco 49ers"
+  },
+  {
+    "name": "Eddy Pineiro",
+    "team": "San Francisco 49ers"
+  },
+  {
+    "name": "Konata Mumpfield",
+    "team": "Los Angeles Rams"
+  },
+  {
+    "name": "Cam Akers",
+    "team": "Minnesota Vikings"
+  },
+  {
+    "name": "Carson Wentz",
+    "team": "Minnesota Vikings"
+  },
+  {
+    "name": "Jordan Addison",
+    "team": "Minnesota Vikings"
+  },
+  {
+    "name": "Gage Larvadain",
+    "team": "Cleveland Browns"
+  },
+  {
+    "name": "Gage Larvadain",
+    "team": "Cleveland Browns"
+  },
+  {
+    "name": "Malachi Corley",
+    "team": "Cleveland Browns"
+  },
+  {
+    "name": "Braxton Berrios",
+    "team": "Houston Texans"
+  },
+  {
+    "name": "Jaylin Noel",
+    "team": "Houston Texans"
+  },
+  {
+    "name": "Isaiah Likely",
+    "team": "Baltimore Ravens"
+  },
+  {
+    "name": "Keaton Mitchell",
+    "team": "Baltimore Ravens"
+  },
+  {
+    "name": "Zaire Mitchell-Paden",
+    "team": "Baltimore Ravens"
+  },
+  {
+    "name": "Darren Waller",
+    "team": "Miami Dolphins"
+  },
+  {
+    "name": "Dee Eskridge",
+    "team": "Miami Dolphins"
+  },
+  {
+    "name": "Jaylen Wright",
+    "team": "Miami Dolphins"
+  },
+  {
+    "name": "Tahj Washington",
+    "team": "Miami Dolphins"
+  },
+  {
+    "name": "David Moore",
+    "team": "Caroline Panthers"
+  },
+  {
+    "name": "James Mitchell",
+    "team": "Caroline Panthers"
+  },
+  {
+    "name": "Trevor Etienne",
+    "team": "Caroline Panthers"
+  },
+  {
+    "name": "Jimmy Horn Jr.",
+    "team": "Caroline Panthers"
+  },
+  {
+    "name": "Cody Schrader",
+    "team": "Jacksonville Jaguars"
+  },
+  {
+    "name": "Johnny Mundt",
+    "team": "Jacksonville Jaguars"
+  },
+  {
+    "name": "Cody Schrader",
+    "team": "Jacksonville Jaguars"
+  },
 ]
+
 
 
 
