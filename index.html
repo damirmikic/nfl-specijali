@@ -144,6 +144,10 @@
             </div>
         </div>
     </div>
+    
+    <div id="toast-notification" class="hidden fixed bottom-5 right-5 bg-green-600 text-white py-3 px-5 rounded-lg shadow-lg z-50 transition-opacity duration-300">
+        Igrač je uspešno sačuvan u bazi podataka!
+    </div>
 
 
     <script>
@@ -780,6 +784,13 @@
                 }
                 
                 console.log(`Tim za igrača ${playerName} je uspešno sačuvan u bazi.`);
+
+                // Prikazujemo "toast" notifikaciju
+                const toast = document.getElementById('toast-notification');
+                toast.classList.remove('hidden');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 3000); // Sakrij notifikaciju nakon 3 sekunde
 
             } catch (error) {
                 console.error('Greška pri čuvanju podataka:', error);
