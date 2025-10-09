@@ -202,12 +202,14 @@
 
         async function loadNflPlayersData() {
             try {
-                const response = await fetch('nfl_players.json');
+                // Pozivamo Netlify funkciju koja dohvata podatke iz Supabase baze
+                const response = await fetch('/.netlify/functions/get-players');
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP greška! status: ${response.status}`);
                 }
                 nflPlayersData = await response.json();
 
+                // Ostatak koda za dodavanje D/ST timova ostaje isti
                 const teams = [...new Set(nflPlayersData.map(p => p.team))];
                 teams.forEach(team => {
                     if (team && team !== "Multiple Teams") {
@@ -217,8 +219,8 @@
                 });
 
             } catch (error) {
-                console.error("Could not load nfl_players.json:", error);
-                errorMessage.textContent = "Could not load local player data. Filtering will not work.";
+                console.error("Neuspešno učitavanje podataka o igračima iz baze:", error);
+                errorMessage.textContent = "Neuspešno učitavanje podataka o igračima. Proverite konzolu za detalje.";
                 errorDiv.classList.remove('hidden');
             }
         }
@@ -245,7 +247,6 @@
                 if (cachedEvents) {
                     fetchedEvents = JSON.parse(cachedEvents);
                 } else {
-                    // Use the Netlify function to fetch events
                     const eventsUrl = `/.netlify/functions/get-events?sport=${sport}`;
                     const eventsResponse = await fetch(eventsUrl);
                     if (!eventsResponse.ok) {
@@ -343,7 +344,6 @@
                 if (cachedOdds) {
                     currentFullGameData = JSON.parse(cachedOdds);
                 } else {
-                    // Use the Netlify function to fetch odds
                     const oddsUrl = `/.netlify/functions/get-odds?sport=${sport}&eventId=${eventId}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
                     const res = await fetch(oddsUrl);
 
@@ -739,7 +739,6 @@
             if (playerName && selectedTeam) {
                 await assignTeamToPlayer(playerName, selectedTeam);
                 assignTeamModal.classList.add('hidden');
-                renderAllOddsView();
             }
         });
         
@@ -756,6 +755,7 @@
         }
 
         async function assignTeamToPlayer(playerName, teamName) {
+            // Ažuriramo podatke LOKALNO, u memoriji pretraživača.
             const playerIndex = nflPlayersData.findIndex(p => p.name === playerName);
             if (playerIndex > -1) {
                 nflPlayersData[playerIndex].team = teamName;
@@ -763,24 +763,27 @@
                 nflPlayersData.push({ name: playerName, team: teamName });
             }
 
+            // Ponovo iscrtavamo tabelu sa ažuriranim podacima.
+            renderAllOddsView();
+            
+            // Šaljemo zahtev funkciji da sačuva promenu u Supabase bazi.
             try {
                 const response = await fetch('/.netlify/functions/update-players', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ playerName, teamName }),
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.message || 'Neuspešno ažuriranje podataka o igraču.');
+                    throw new Error(errorData.message || 'Neuspešno ažuriranje igrača u bazi.');
                 }
+                
+                console.log(`Tim za igrača ${playerName} je uspešno sačuvan u bazi.`);
 
-                console.log('Podaci o igraču su uspešno ažurirani.');
             } catch (error) {
-                console.error('Greška pri ažuriranju podataka o igraču:', error);
-                errorMessage.textContent = `Greška pri ažuriranju podataka: ${error.message}`;
+                console.error('Greška pri čuvanju podataka:', error);
+                errorMessage.textContent = `Greška pri čuvanju podataka: ${error.message}`;
                 errorDiv.classList.remove('hidden');
             }
         }
