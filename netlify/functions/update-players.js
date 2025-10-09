@@ -9,7 +9,10 @@ exports.handler = async function (event, context) {
   const supabaseKey = process.env.SUPABASE_ANON_KEY;
   
   if (!supabaseUrl || !supabaseKey) {
-    return { statusCode: 500, body: JSON.stringify({ message: "Supabase kredencijali nisu podešeni." }) };
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Supabase URL ili ključ nisu podešeni." }),
+    };
   }
   
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -18,34 +21,30 @@ exports.handler = async function (event, context) {
     const { playerName, teamName } = JSON.parse(event.body);
 
     if (!playerName || !teamName) {
-      return { statusCode: 400, body: JSON.stringify({ message: 'Nedostaje ime igrača ili tima.' }) };
+      return { statusCode: 400, body: JSON.stringify({ message: 'Ime igrača i tima su obavezni.' }) };
     }
 
-    // Pokušavamo najobičniji INSERT. Ako ovo ne uspe, problem je 100% RLS ili konekcija.
+    // Vraćamo `upsert` logiku. Ona je ispravno rešenje za ovaj slučaj.
     const { data, error } = await supabase
       .from('players')
-      .insert([
-        { name: playerName, team: teamName }
-      ])
+      .upsert({ name: playerName, team: teamName }, { onConflict: 'name' })
       .select();
 
-    // Ako postoji greška, vraćamo je
     if (error) {
-      console.error('Supabase greška prilikom INSERT-a:', error);
+      console.error('Supabase greška prilikom UPSERT-a:', error);
       return {
-        statusCode: 400, // Vraćamo 400 da bi response.ok bio 'false' na frontendu
+        statusCode: 400,
         body: JSON.stringify({ 
-          message: 'Supabase greška: Nije moguće upisati igrača.',
+          message: 'Supabase greška: Nije moguće upisati ili ažurirati igrača.',
           details: error.message
         }),
       };
     }
 
-    // Ako je sve OK
     return {
       statusCode: 200,
       body: JSON.stringify({ 
-        message: 'Igrač je uspešno ubačen u bazu.',
+        message: 'Igrač je uspešno sačuvan u bazi.',
         returnData: data 
       }),
     };
