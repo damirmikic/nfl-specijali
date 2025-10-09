@@ -206,14 +206,12 @@
 
         async function loadNflPlayersData() {
             try {
-                // Pozivamo Netlify funkciju koja dohvata podatke iz Supabase baze
                 const response = await fetch('/.netlify/functions/get-players');
                 if (!response.ok) {
                     throw new Error(`HTTP greška! status: ${response.status}`);
                 }
                 nflPlayersData = await response.json();
 
-                // Ostatak koda za dodavanje D/ST timova ostaje isti
                 const teams = [...new Set(nflPlayersData.map(p => p.team))];
                 teams.forEach(team => {
                     if (team && team !== "Multiple Teams") {
@@ -779,21 +777,22 @@
                 });
 
                 if (!response.ok) {
+                    // **NOVO**: Čitamo detaljnu poruku o grešci sa servera
                     const errorData = await response.json();
-                    throw new Error(errorData.message || 'Neuspešno ažuriranje igrača u bazi.');
+                    throw new Error(errorData.message + (errorData.details ? ` Detalji: ${errorData.details}` : ''));
                 }
                 
                 console.log(`Tim za igrača ${playerName} je uspešno sačuvan u bazi.`);
 
-                // Prikazujemo "toast" notifikaciju
                 const toast = document.getElementById('toast-notification');
                 toast.classList.remove('hidden');
                 setTimeout(() => {
                     toast.classList.add('hidden');
-                }, 3000); // Sakrij notifikaciju nakon 3 sekunde
+                }, 3000);
 
             } catch (error) {
                 console.error('Greška pri čuvanju podataka:', error);
+                // **NOVO**: Prikazujemo detaljnu grešku korisniku
                 errorMessage.textContent = `Greška pri čuvanju podataka: ${error.message}`;
                 errorDiv.classList.remove('hidden');
             }
