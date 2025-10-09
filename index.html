@@ -126,6 +126,25 @@
             </div>
         </div>
     </div>
+    
+    <div id="assignTeamModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="glassmorphic rounded-2xl shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 text-center mb-4">Dodeli tim igraču</h3>
+                <p class="text-center mb-4" id="assignTeamPlayerName"></p>
+                <div>
+                    <label for="teamSelectDropdown" class="block text-sm font-medium text-gray-700 mb-2">Izaberi tim</label>
+                    <select id="teamSelectDropdown" class="w-full p-3 bg-white bg-opacity-80 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </select>
+                </div>
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button id="cancelAssignTeamButton" class="py-2 px-4 bg-gray-300 text-gray-800 font-medium rounded-xl hover:bg-gray-400 transition-colors">Otkaži</button>
+                    <button id="saveTeamButton" class="py-2 px-4 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors">Sačuvaj</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         // API keys are no longer stored here for security. They are managed by Netlify Functions.
@@ -167,6 +186,11 @@
         const errorMessage = document.getElementById('errorMessage');
         const modal = document.getElementById('csvPreviewModal');
         const closeModalButton = document.getElementById('closeModalButton');
+        const assignTeamModal = document.getElementById('assignTeamModal');
+        const cancelAssignTeamButton = document.getElementById('cancelAssignTeamButton');
+        const saveTeamButton = document.getElementById('saveTeamButton');
+        const teamSelectDropdown = document.getElementById('teamSelectDropdown');
+        const assignTeamPlayerName = document.getElementById('assignTeamPlayerName');
         
         // State variables
         let fetchedEvents = [];
@@ -678,27 +702,88 @@
             link.click();
             document.body.removeChild(link);
         }
-
+        
         allOddsTabContent.addEventListener('click', (event) => {
             const addButton = event.target.closest('.add-player-from-all-odds-btn');
-            if (!addButton) return;
+            if (addButton) {
+                const playerName = addButton.dataset.playerName;
+                if (!playerName || !allPlayersData[playerName]) return;
 
-            const playerName = addButton.dataset.playerName;
-            if (!playerName || !allPlayersData[playerName]) return;
+                if (selectedDataForExport[playerName]) {
+                    alert('Player is already added to the CSV Builder.');
+                    return;
+                }
 
-            if (selectedDataForExport[playerName]) {
-                alert('Player is already added to the CSV Builder.');
-                return;
+                selectedDataForExport[playerName] = JSON.parse(JSON.stringify(allPlayersData[playerName]));
+                renderSelectedPlayersAndMarkets();
+                
+                addButton.textContent = 'Added';
+                addButton.disabled = true;
+                addButton.classList.add('bg-green-600', 'cursor-not-allowed');
+            }
+            
+            const assignButton = event.target.closest('.assign-team-btn');
+            if (assignButton) {
+                const playerName = assignButton.dataset.playerName;
+                openAssignTeamModal(playerName);
+            }
+        });
+
+        cancelAssignTeamButton.addEventListener('click', () => {
+            assignTeamModal.classList.add('hidden');
+        });
+
+        saveTeamButton.addEventListener('click', async () => {
+            const playerName = saveTeamButton.dataset.playerName;
+            const selectedTeam = teamSelectDropdown.value;
+            if (playerName && selectedTeam) {
+                await assignTeamToPlayer(playerName, selectedTeam);
+                assignTeamModal.classList.add('hidden');
+                renderAllOddsView();
+            }
+        });
+        
+        function openAssignTeamModal(playerName) {
+            assignTeamPlayerName.textContent = playerName;
+            saveTeamButton.dataset.playerName = playerName;
+
+            const allTeams = [...new Set(nflPlayersData.map(p => p.team).filter(t => t && t !== "Multiple Teams"))].sort();
+
+            teamSelectDropdown.innerHTML = '<option value="">-- Izaberite tim --</option>' +
+                                          allTeams.map(team => `<option value="${team}">${team}</option>`).join('');
+
+            assignTeamModal.classList.remove('hidden');
+        }
+
+        async function assignTeamToPlayer(playerName, teamName) {
+            const playerIndex = nflPlayersData.findIndex(p => p.name === playerName);
+            if (playerIndex > -1) {
+                nflPlayersData[playerIndex].team = teamName;
+            } else {
+                nflPlayersData.push({ name: playerName, team: teamName });
             }
 
-            selectedDataForExport[playerName] = JSON.parse(JSON.stringify(allPlayersData[playerName]));
-            renderSelectedPlayersAndMarkets();
-            
-            addButton.textContent = 'Added';
-            addButton.disabled = true;
-            addButton.classList.add('bg-green-600', 'cursor-not-allowed');
-            
-        });
+            try {
+                const response = await fetch('/.netlify/functions/update-players', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ playerName, teamName }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Neuspešno ažuriranje podataka o igraču.');
+                }
+
+                console.log('Podaci o igraču su uspešno ažurirani.');
+            } catch (error) {
+                console.error('Greška pri ažuriranju podataka o igraču:', error);
+                errorMessage.textContent = `Greška pri ažuriranju podataka: ${error.message}`;
+                errorDiv.classList.remove('hidden');
+            }
+        }
 
         function renderAllOddsView() {
             allOddsTabContent.innerHTML = '';
@@ -751,9 +836,14 @@
                     const team = findPlayerTeam(playerName);
                     const isAlreadyAdded = !!selectedDataForExport[playerName];
                     
+                    let teamHTML = `<span class="text-xs text-gray-500 font-normal">(${team})</span>`;
+                    if (team === 'N/A') {
+                        teamHTML += ` <button class="assign-team-btn text-blue-500 hover:underline text-xs" data-player-name="${playerName}">Dodeli tim</button>`;
+                    }
+
                     contentHTML += `<tr class="border-t border-gray-200">
                         <td class="px-4 py-2 font-medium">
-                            ${playerName} <span class="text-xs text-gray-500 font-normal">(${team})</span>
+                            ${playerName} ${teamHTML}
                         </td>`;
                     bookmakers.forEach(bookie => {
                         let cellContent = '-';
