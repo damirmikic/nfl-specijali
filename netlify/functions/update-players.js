@@ -9,10 +9,7 @@ exports.handler = async function (event, context) {
   const supabaseKey = process.env.SUPABASE_ANON_KEY;
   
   if (!supabaseUrl || !supabaseKey) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ message: "Supabase URL ili ključ nisu podešeni u Netlify environment variables." }),
-    };
+    return { statusCode: 500, body: JSON.stringify({ message: "Supabase kredencijali nisu podešeni." }) };
   }
   
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -21,37 +18,34 @@ exports.handler = async function (event, context) {
     const { playerName, teamName } = JSON.parse(event.body);
 
     if (!playerName || !teamName) {
-      return { statusCode: 400, body: JSON.stringify({ message: 'Ime igrača i tima su obavezni.' }) };
+      return { statusCode: 400, body: JSON.stringify({ message: 'Nedostaje ime igrača ili tima.' }) };
     }
 
-    // `upsert` će uraditi UPDATE ako igrač postoji, ili INSERT ako ne postoji.
-    // Vraćamo `select()` da bismo videli šta je upisano.
+    // Pokušavamo najobičniji INSERT. Ako ovo ne uspe, problem je 100% RLS ili konekcija.
     const { data, error } = await supabase
       .from('players')
-      .upsert({ name: playerName, team: teamName }, { onConflict: 'name' })
-      .select(); // <-- VAŽNO: Dodali smo .select()
+      .insert([
+        { name: playerName, team: teamName }
+      ])
+      .select();
 
-    // ===== KLJUČNI DEO ZA DEBAGOVANJE =====
-    // Ako Supabase vrati grešku (npr. zbog RLS-a), sada ćemo je uhvatiti i poslati nazad.
+    // Ako postoji greška, vraćamo je
     if (error) {
-      console.error('Supabase greška:', error);
-      // Vraćamo status 500 sa tačnom porukom o grešci iz baze.
+      console.error('Supabase greška prilikom INSERT-a:', error);
       return {
-        statusCode: 500,
+        statusCode: 400, // Vraćamo 400 da bi response.ok bio 'false' na frontendu
         body: JSON.stringify({ 
-          message: 'Supabase je vratio grešku prilikom upisivanja.',
-          details: error.message,
-          hint: error.hint
+          message: 'Supabase greška: Nije moguće upisati igrača.',
+          details: error.message
         }),
       };
     }
-    // =======================================
 
-    // Ako je sve prošlo kako treba, vraćamo podatke koji su upisani.
+    // Ako je sve OK
     return {
       statusCode: 200,
       body: JSON.stringify({ 
-        message: 'Igrač je uspešno sačuvan u bazi.',
+        message: 'Igrač je uspešno ubačen u bazu.',
         returnData: data 
       }),
     };
@@ -59,7 +53,7 @@ exports.handler = async function (event, context) {
     console.error('Greška u izvršavanju funkcije:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: 'Neuspešno izvršavanje funkcije.', error: error.message }),
+      body: JSON.stringify({ message: 'Greška na serveru.', error: error.message }),
     };
   }
 };
