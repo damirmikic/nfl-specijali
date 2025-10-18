@@ -1,6 +1,3 @@
-// This function fetches odds for a specific game event.
-// It securely accesses and RANDOMLY selects an API key from your Netlify environment variables.
-
 const fetch = require('node-fetch');
 
 exports.handler = async function (event, context) {
@@ -30,10 +27,24 @@ exports.handler = async function (event, context) {
             body: JSON.stringify(errorData),
         }
     }
+    
+    // Extract usage headers
+    const requestsRemaining = response.headers.get('x-requests-remaining');
+    const requestsUsed = response.headers.get('x-requests-used');
+    
     const data = await response.json();
+    
+    // Return both the data and the usage info
     return {
       statusCode: 200,
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        data: data, // The original data
+        usageInfo: {
+          keyUsed: apiKey.substring(0, 4) + '...', // Obfuscated key
+          remaining: requestsRemaining,
+          used: requestsUsed
+        }
+      }),
     };
   } catch (error) {
     console.error("Fetch error:", error);
@@ -43,4 +54,3 @@ exports.handler = async function (event, context) {
     };
   }
 };
-
