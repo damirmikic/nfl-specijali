@@ -108,6 +108,10 @@
                 <span class="block sm:inline" id="errorMessage"></span>
             </div>
 
+            <div id="usage-info-container" class="hidden mt-4 text-center text-sm text-gray-600">
+                <p>API Key Usage (Last Request): <span id="usage-info-details" class="font-medium"></span></p>
+            </div>
+
         </main>
     </div>
 
@@ -204,6 +208,16 @@
         let selectedDataForExport = {}; 
         let nflPlayersData = []; 
 
+        // NEW: Function to display API usage info
+        function displayUsageInfo(usageInfo) {
+            const usageContainer = document.getElementById('usage-info-container');
+            const usageDetails = document.getElementById('usage-info-details');
+            if (usageInfo && (usageInfo.remaining || usageInfo.used)) {
+                usageDetails.textContent = `Key: ${usageInfo.keyUsed} | Remaining: ${usageInfo.remaining || 'N/A'} | Used: ${usageInfo.used || 'N/A'}`;
+                usageContainer.classList.remove('hidden');
+            }
+        }
+
         async function loadNflPlayersData() {
             try {
                 const response = await fetch('/.netlify/functions/get-players');
@@ -255,7 +269,16 @@
                         const errorData = await eventsResponse.json();
                         throw new Error(`Failed to fetch events: ${errorData.message || eventsResponse.statusText}`);
                     }
-                    fetchedEvents = await eventsResponse.json();
+                    
+                    // UPDATED: Parse new response structure
+                    const responseBody = await eventsResponse.json();
+                    fetchedEvents = responseBody.data; // Get the data
+                    
+                    // NEW: Display usage info
+                    if (responseBody.usageInfo) {
+                        displayUsageInfo(responseBody.usageInfo);
+                    }
+                    
                     sessionStorage.setItem('nflEvents', JSON.stringify(fetchedEvents));
                 }
 
@@ -353,7 +376,16 @@
                         const errorData = await res.json();
                         throw new Error(errorData.message || `HTTP error ${res.status}`);
                     }
-                    currentFullGameData = await res.json();
+                    
+                    // UPDATED: Parse new response structure
+                    const responseBody = await res.json();
+                    currentFullGameData = responseBody.data; // Get the data
+                    
+                    // NEW: Display usage info
+                    if (responseBody.usageInfo) {
+                        displayUsageInfo(responseBody.usageInfo);
+                    }
+
                     sessionStorage.setItem(cacheKey, JSON.stringify(currentFullGameData));
                 }
                 
