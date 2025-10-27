@@ -69,6 +69,11 @@
         </header>
 
         <main>
+            <div class="text-center mb-6">
+                <button id="forceKeyButton" class="neumorphic-button text-sm text-gray-700 font-medium py-2 px-6 rounded-full transition duration-300">
+                    Force Reload API Key
+                </button>
+            </div>
             <div id="main-content" class="glassmorphic rounded-2xl shadow-lg p-6 md:p-8">
                 
                 <div id="fetch-section" class="text-center">
@@ -183,6 +188,7 @@
 
         // DOM Elements
         const fetchEventsButton = document.getElementById('fetchEventsButton');
+        const forceKeyButton = document.getElementById('forceKeyButton'); // NOVO
         const gameSelectionArea = document.getElementById('game-selection-area');
         const eventsDropdown = document.getElementById('eventsDropdown');
         const tabsContainer = document.getElementById('tabs-container');
@@ -247,6 +253,36 @@
         }
 
         document.addEventListener('DOMContentLoaded', loadNflPlayersData);
+
+        // NOVI LISTENER ZA NOVO DUGME
+        forceKeyButton.addEventListener('click', () => {
+            // 1. Obriši keš iz session storage-a
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('nflEvents') || key.startsWith('nflOdds_')) {
+                    sessionStorage.removeItem(key);
+                }
+            });
+
+            alert('API keš je obrisan. Ponovno preuzimanje podataka će koristiti novi nasumični API ključ.');
+
+            // 2. Proveri da li je utakmica izabrana i pokreni ponovno preuzimanje
+            const selectedEventId = eventsDropdown.value;
+            if (selectedEventId) {
+                // Ako je utakmica izabrana, pokreni ponovno preuzimanje kvota
+                // Postavljamo selectedIndex da bi "change" event radio čak i ako je ista opcija
+                const currentIndex = eventsDropdown.selectedIndex;
+                eventsDropdown.selectedIndex = -1; // Resetuj
+                eventsDropdown.selectedIndex = currentIndex; // Postavi ponovo
+                eventsDropdown.dispatchEvent(new Event('change'));
+            } else if (document.getElementById('fetch-section').offsetParent !== null) {
+                 // Ako lista utakmica nije preuzeta (dugme je vidljivo), klikni ga
+                fetchEventsButton.click();
+            } else {
+                // Ako je lista utakmica preuzeta, ali nijedna nije izabrana,
+                // korisnik mora sam da izabere utakmicu da pokrene preuzimanje.
+            }
+        });
+        // KRAJ NOVOG LISTENER-A
 
 
         fetchEventsButton.addEventListener('click', async () => {
